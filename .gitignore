@@ -1,3 +1,5 @@
 esp-idf-v4.4/
 .vscode/
 build/
+Code Esp32.code-workspace
+.gitignore
