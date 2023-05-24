@@ -13,6 +13,7 @@
  */
 #include "sys_config.h"
 
+static QueueHandle_t tx_mqtt_task_queue;
 
 static const char *TAG = "mqtt connection";
 esp_mqtt_client_handle_t client = NULL;
@@ -63,6 +64,20 @@ void create_task_mqtt ( int topic_len, char* _topic, int data_len, char* _data )
             return;   
         } 
     }
+}
+void mqtt_transmit_task(void *arg)
+{
+    tx_mqtt_task_action_t action;
+    while (1) {
+        
+        xQueueReceive(tx_mqtt_task_queue, &action, portMAX_DELAY);
+        if (action == RX_RECEIVE_PING) {
+            
+        } else if (action == RX_TASK_EXIT) {
+            break;
+        }
+    }
+    vTaskDelete(NULL);
 }
 /*
  * @brief Event handler registered to receive MQTT events
@@ -141,8 +156,10 @@ void mqtt_app_start(void)
             .lwt_retain = 0
     };
     client = esp_mqtt_client_init(&mqtt_cfg);
+    tx_mqtt_task_queue = xQueueCreate(1, sizeof(tx_mqtt_task_action_t));
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+    
     esp_mqtt_client_start(client);
 }
 

@@ -35,12 +35,33 @@
 #define ID_SIX_FRAME                    0x6
 #define ID_SEVEN_FRAME                  0x7
 
+#define FIRST_PACKET_SIZE 6
+#define NORMAL_PACKET_SIZE 7
+
 typedef enum {
     TX_SEND_PING_RESP,
     TX_SEND_DATA,
     TX_SEND_STOP_RESP,
     TX_TASK_EXIT,
 } tx_twai_task_action_t;
+
+typedef struct id_type_msg_t{
+    uint8_t msg_type;                
+    uint8_t target_type;              
+    uint8_t frame_type;    
+} id_type_msg;
+
+typedef struct twai_msg_t{
+    id_type_msg type_id;                
+    uint8_t msg_len;              
+    char* msg;    
+} twai_msg;
+
+typedef struct twai_rx_msg_t{
+    twai_message_t rx_buffer_msg[8];                
+    uint8_t current_buffer_msg;    
+    uint8_t graft_buffer_msg;
+} twai_rx_msg;
 
 typedef struct Twai_Handler_s
 {
@@ -49,11 +70,19 @@ typedef struct Twai_Handler_s
     twai_general_config_t g_config;
     QueueHandle_t tx_task_queue;
     tx_twai_task_action_t tx_task_action;
-
+    uint8_t id;
 } Twai_Handler_Struct;
 
 void twai_install_start(Twai_Handler_Struct* );
 void twai_stop_uninstall(Twai_Handler_Struct* );
 void twai_receive_task(void *);
 void twai_transmit_task(void *);
+void twai_transmit_msg(id_type_msg , uint8_t , char* );
+void twai_transmit_multi(void *);
+void twai_transmit_single_for_multi(void *);
+void twai_transmit_single(void *);
+void graft_packet(void *);
+char* convert_binary(uint16_t);
+uint32_t encode_id(id_type_msg );
+id_type_msg decode_id(uint32_t );
 #endif /* TWAI_APP_H_ */

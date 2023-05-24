@@ -6,6 +6,10 @@
  */
 #define DEBUG 1
 
+
+#define NODE_ID 24
+
+#define MAX_BUFFER_RX 20
 /**
  * GPIOs defs
  */
@@ -13,8 +17,8 @@
 // #define LED_BUILDING         ( 27 ) 
 // #define GPIO_OUTPUT_PIN_SEL  ( 1ULL<<LED_BUILDING )
 
-// #define BUTTON_PIN               ( 0 )
-// #define GPIO_INPUT_PIN_SEL   ( 1ULL<<BUTTON )
+#define BUTTON_PIN              ( 0 )
+#define GPIO_INPUT_PIN_SEL      ( 1ULL<<BUTTON )   
 
 /**
  * Info wifi your ssid & passwd
