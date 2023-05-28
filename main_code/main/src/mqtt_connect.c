@@ -8,73 +8,103 @@
 #include "esp_log.h"
 
 #include "mqtt_connect.h"
+#include "twai_connect.h"
 /**
  * System Config;
  */
 #include "sys_config.h"
 
-static QueueHandle_t tx_mqtt_task_queue;
-
 static const char *TAG = "mqtt connection";
-esp_mqtt_client_handle_t client = NULL;
- 
+
+QueueHandle_t tx_task_queue;
+mqtt_data_t mqtt_data;
+
 void log_error_if_nonzero(const char *message, int error_code)
 {
-    if (error_code != 0) {
+    if (error_code != 0)
+    {
         ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
     }
 }
-void mqtt_receive_control(void * data)
-{
-    printf("TOPIC = %s\r\n", TEST_TOPIC_SUB);
-    printf("DATA = %s\n",   (char*)data);
-    vTaskDelay(100 / portTICK_PERIOD_MS); 
-    vTaskDelete(0);
-}
-void mqtt_receive_unknown(void * data)
-{
-    printf("TOPIC = %s\r\n", "Unknown");
-    printf("DATA = %s\n",  (char*)data);
-    vTaskDelay(100 / portTICK_PERIOD_MS); 
-    vTaskDelete(0);
-}
-void create_task_mqtt ( int topic_len, char* _topic, int data_len, char* _data )
+// void mqtt_to_twai_tranmit(void* arg)
+// {   
+//     mqtt_data_t* mqtt_data = (mqtt_data_t*) arg;
+//     if (NODE_ID == 20)
+//     {
+//         char topic[MAX_LENGTH_TOPIC];
+//         char data[MAX_LENGTH_DATA];
+//         snprintf(topic, MAX_LENGTH_TOPIC, "%.*s", mqtt_data->topic_len, mqtt_data->topic);
+//         snprintf(data, MAX_LENGTH_DATA, "%.*s", mqtt_data->data_len, mqtt_data->topic + mqtt_data->topic_len);
+//         if (strcmp(topic, "/Car_Control/Angle") == 0)
+//         {
+//             id_type_msg type_id = {
+//                 .msg_type = ID_MSG_TYPE_ACK_CMD_FRAME,
+//                 .target_type = ID_TARGET_STEER_CTRL_NODE,
+//             };
+//             twai_transmit_msg(type_id, mqtt_data->data_len, data);
+//         }
+//         else if (strcmp(topic, "/Car_Control/Speed") == 0)
+//         {
+//             id_type_msg type_id = {
+//                 .msg_type = ID_MSG_TYPE_ACK_CMD_FRAME,
+//                 .target_type = ID_TARGET_EGN_CTRL_NODE,
+//             };
+//             twai_transmit_msg(type_id, mqtt_data->data_len, data);
+//         }
+//     }
+//     vTaskDelete(NULL);
+// }
+void mqtt_transmit_task(void* arg)
 {   
-    char topic[50];
-    char data[500];
-    snprintf(topic, 100, "%.*s", topic_len, _topic);
-    snprintf(data, 500, "%.*s", data_len, _data);
-    if(strcmp(topic, "/Car_Control/") == 0)
+    while (1)
     {
-        if( xTaskCreate( mqtt_receive_control, "mqtt_receive_control", 1024 * 2, data, 2, NULL) != pdPASS )
-        {
-            #if DEBUG
-            ESP_LOGI( TAG, "ERROR - mqtt_receive_unknown NOT ALLOCATED :/\r\n" );  
-            #endif
-            return;   
-        }    
-    }
-    else 
-    {
-        if( xTaskCreate( mqtt_receive_unknown, "mqtt_receive_unknown", 1024 * 2, data, 2, NULL) != pdPASS )
-        {
-            #if DEBUG
-            ESP_LOGI( TAG, "ERROR - mqtt_receive_unknown NOT ALLOCATED :/\r\n" );  
-            #endif
-            return;   
-        } 
-    }
-}
-void mqtt_transmit_task(void *arg)
-{
-    tx_mqtt_task_action_t action;
-    while (1) {
         
-        xQueueReceive(tx_mqtt_task_queue, &action, portMAX_DELAY);
-        if (action == RX_RECEIVE_PING) {
+        ESP_LOGW(TAG, "Waiting queue...");
+
+        mqtt_data_t mqtt_data_queue;
+        xQueueReceive(tx_task_queue, (mqtt_data_t*) &mqtt_data_queue, portMAX_DELAY);
+
+        mqtt_data_t mqtt_data = mqtt_data_queue;
+
+        ESP_LOGW(TAG, "Received queue...");
+        #ifdef DEBUG
+        ESP_LOGW(TAG,"TOPIC = %s",  mqtt_data.topic);
+        ESP_LOGW(TAG,"TOPIC_LENGTH = %d",  mqtt_data.topic_len);
+        ESP_LOGW(TAG,"DATA = %s",   mqtt_data.data);
+        ESP_LOGW(TAG,"DATA_LENGTH = %d",  mqtt_data.data_len);
+        #endif
+
+        if (NODE_ID == 20)
+        {
+            char topic[MAX_LENGTH_TOPIC];
+            char data[MAX_LENGTH_DATA];
+            snprintf(topic, MAX_LENGTH_TOPIC, "%.*s", mqtt_data.topic_len, mqtt_data.topic);
+            snprintf(data, MAX_LENGTH_DATA, "%.*s", mqtt_data.data_len, mqtt_data.topic + mqtt_data.topic_len);
             
-        } else if (action == RX_TASK_EXIT) {
-            break;
+            if (strcmp(topic, "/Car_Control/Angle") == 0)
+            {
+                twai_msg send_msg = {
+                .type_id = {
+                            .msg_type = ID_MSG_TYPE_CMD_FRAME,
+                            .target_type = ID_TARGET_STEER_CTRL_NODE,
+                            },
+                .msg = data,
+                .msg_len = mqtt_data.data_len,
+                };
+                twai_transmit_msg(&send_msg);
+            }
+            else if (strcmp(topic, "/Car_Control/Speed") == 0)
+            {
+                twai_msg send_msg = {
+                .type_id = {
+                            .msg_type = ID_MSG_TYPE_CMD_FRAME,
+                            .target_type = ID_TARGET_EGN_CTRL_NODE,
+                            },
+                .msg = data,
+                .msg_len = mqtt_data.data_len,
+                };
+                twai_transmit_msg(&send_msg);
+            }
         }
     }
     vTaskDelete(NULL);
@@ -89,19 +119,21 @@ void mqtt_transmit_task(void *arg)
  * @param event_id The id for the received event.
  * @param event_data The data for the event, esp_mqtt_event_handle_t.
  */
+
 void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
+    MQTT_Handler_Struct *mqtt_t = (MQTT_Handler_Struct *)handler_args;
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
-    switch ((esp_mqtt_event_id_t)event_id) {
+    switch ((esp_mqtt_event_id_t)event_id)
+    {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         msg_id = esp_mqtt_client_subscribe(client, TEST_TOPIC_SUB, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-        mqtt_client_publish(CONNECT_TOPIC_PUB, "Esp32");
-
+        mqtt_client_publish(mqtt_t, CONNECT_TOPIC_PUB, "Esp32");
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -118,14 +150,24 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-        create_task_mqtt(event->topic_len, event->topic, event->data_len, event->data);
+        // ESP_LOGE(TAG,"TOPIC = %s\r",  event->topic);
+        // ESP_LOGE(TAG,"DATA = %s",   event->data);
+        // ESP_LOGE(TAG,"DATA_LENGTH = %d",  event->data_len);
+        mqtt_data.topic = event->topic;
+        mqtt_data.data = event->data;
+        mqtt_data.data_len = event->data_len;
+        mqtt_data.topic_len = event->topic_len;
+        xQueueSend(tx_task_queue, (mqtt_data_t*) &mqtt_data, portMAX_DELAY);
+        // xTaskCreatePinnedToCore(mqtt_to_twai_tranmit, "TWAI_tx_multi", 4096, &mqtt_data, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
+        // mqtt_to_twai_tranmit(mqtt_data);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT) {
+        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT)
+        {
             log_error_if_nonzero("reported from esp-tls", event->error_handle->esp_tls_last_esp_err);
             log_error_if_nonzero("reported from tls stack", event->error_handle->esp_tls_stack_err);
-            log_error_if_nonzero("captured as transport's socket errno",  event->error_handle->esp_transport_sock_errno);
+            log_error_if_nonzero("captured as transport's socket errno", event->error_handle->esp_transport_sock_errno);
             ESP_LOGI(TAG, "Last errno string (%s)", strerror(event->error_handle->esp_transport_sock_errno));
         }
         break;
@@ -134,33 +176,21 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         break;
     }
 }
-bool mqtt_client_publish(char* topic, char *publish_string)
+bool mqtt_client_publish(MQTT_Handler_Struct *mqtt_t, char *topic, char *publish_string)
 {
-    if (client) {
-        int msg_id = esp_mqtt_client_publish(client, topic, publish_string, 0, 1, 0);
+    if (mqtt_t->client)
+    {
+        int msg_id = esp_mqtt_client_publish(mqtt_t->client, topic, publish_string, 0, 1, 0);
         ESP_LOGI(TAG, "sent publish returned msg_id=%d", msg_id);
         return true;
     }
     return false;
 }
-void mqtt_app_start(void)
+void mqtt_init_start(MQTT_Handler_Struct *mqtt_t)
 {
-    esp_mqtt_client_config_t mqtt_cfg = {
-            .host = MQTT_ADDRESS,
-            .port = MQTT_PORT,
-            //Public after disconnect 30s
-            .lwt_topic = DISCONNECT_TOPIC_PUB,
-            .lwt_msg = "Esp32",
-            .lwt_msg_len = 0,
-            .lwt_qos = 1,
-            .lwt_retain = 0
-    };
-    client = esp_mqtt_client_init(&mqtt_cfg);
-    tx_mqtt_task_queue = xQueueCreate(1, sizeof(tx_mqtt_task_action_t));
+    mqtt_t->client = esp_mqtt_client_init(mqtt_t->mqtt_cfg);
+    tx_task_queue = xQueueCreate(5, sizeof(mqtt_data_t));
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
-    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
-    
-    esp_mqtt_client_start(client);
+    esp_mqtt_client_register_event(mqtt_t->client, ESP_EVENT_ANY_ID, mqtt_event_handler, mqtt_t);
+    esp_mqtt_client_start(mqtt_t->client);
 }
-
-

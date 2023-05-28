@@ -4,12 +4,16 @@
 /**
  * Debugger?
  */
-#define DEBUG 1
+// #define DEBUG
 
 
-#define NODE_ID 24
+#define NODE_ID 20
 
-#define MAX_BUFFER_RX 20
+#define MAX_PACKET_NUMBER 8
+
+#define MAX_NODE_NUMBER 50
+
+#define TWAI_TRANSMIT_WAIT 500
 /**
  * GPIOs defs
  */
@@ -20,6 +24,41 @@
 #define BUTTON_PIN              ( 0 )
 #define GPIO_INPUT_PIN_SEL      ( 1ULL<<BUTTON )   
 
+#define MAX_LENGTH_TOPIC 50
+#define MAX_LENGTH_DATA 200
+
+#define RX_TASK_PRIO                    3       //Receiving task priority
+#define TX_TASK_PRIO                    4       //Sending task priority
+
+#define TX_GPIO_NUM                     CONFIG_TX_GPIO_NUM
+#define RX_GPIO_NUM                     CONFIG_RX_GPIO_NUM
+
+#define ID_MSG_TYPE_ALL_NODE            0x0
+#define ID_MSG_TYPE_CMD_FRAME           0x1     //Command Frame
+#define ID_MSG_TYPE_ACK_CMD_FRAME       0x2
+#define ID_MSG_TYPE_R_N_FRAME           0x3     //Remote/Notice frame
+#define ID_MSG_TYPE_TEST_FRAME          0x4
+#define ID_MSG_TYPE_ACK_TEST_FRAME      0x5
+
+#define ID_TARGET_ALL_NODE              0x0
+#define ID_TARGET_EGN_CTRL_NODE         0x1     //Engine Control Node
+#define ID_TARGET_LIGHT_GPS_CTRL_NODE   0x2     //Light-Speaker and GPS Node
+#define ID_TARGET_MASTER_NODE           0x3
+#define ID_TARGET_STEER_CTRL_NODE       0x4     //Steering Control Node
+#define ID_TARGET_SENSOR_NODE           0x5     //Obstacle Sensor Node Engine
+#define ID_TARGET_PW_MANAGEMENT_NODE    0x6     //Power Management Node
+
+#define ID_END_FRAME                    0x0
+#define ID_FIRST_FRAME                  0x1
+#define ID_SECOND_FRAME                 0x2
+#define ID_THIRD_FRAME                  0x3
+#define ID_FOURTH_FRAME                 0x4
+#define ID_FIFTH_FRAME                  0x5
+#define ID_SIX_FRAME                    0x6
+#define ID_SEVEN_FRAME                  0x7
+
+#define FIRST_PACKET_SIZE 6
+#define NORMAL_PACKET_SIZE 7
 /**
  * Info wifi your ssid & passwd
  */
