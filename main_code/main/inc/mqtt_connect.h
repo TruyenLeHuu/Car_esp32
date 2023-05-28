@@ -5,7 +5,6 @@
 #define MAIN_MQTT_APP_H_
 #include "mqtt_client.h"
 
-
 typedef enum {
     RX_RECEIVE_PING,
     RX_RECEIVE_START_CMD,

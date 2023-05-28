@@ -4,10 +4,10 @@
 /**
  * Debugger?
  */
+
 // #define DEBUG
 
-
-#define NODE_ID 20
+#define NODE_ID 5
 
 #define MAX_PACKET_NUMBER 8
 
@@ -57,6 +57,14 @@
 #define ID_SIX_FRAME                    0x6
 #define ID_SEVEN_FRAME                  0x7
 
+#define ID_ALL_NODE                     0x0
+#define ID_EGN_CTRL_NODE                0x1     //Engine Control Node
+#define ID_LIGHT_GPS_CTRL_NODE          0x2     //Light-Speaker and GPS Node
+#define ID_MASTER_NODE                  0x3
+#define ID_STEER_CTRL_NODE              0x4     //Steering Control Node
+#define ID_SENSOR_NODE                  0x5     //Obstacle Sensor Node Engine
+#define ID_PW_MANAGEMENT_NODE           0x6
+
 #define FIRST_PACKET_SIZE 6
 #define NORMAL_PACKET_SIZE 7
 /**
@@ -68,14 +76,6 @@
 #define WIFI_PASS      "01245678"
 
 /**
- * Net config
- */
-#define FIXED_IP 0
-#define IP_ADDRESS 		"192.168.0.121"
-#define GATEWAY_ADDRESS "192.168.0.1"
-#define NETMASK_ADDRESS "255.255.255.0"
-
-/**
  * Mqtt config
  */
 #define MQTT_ADDRESS 		"192.168.137.1"
@@ -84,9 +84,12 @@
 /**
  * Topic
  */
-#define TEST_TOPIC_PUB 		"/Car_Data/"
+#define TEST_TOPIC_PUB 		    "/Car_Data/"
+#define LIGHT_TOPIC_PUB 		"/Status/Light"
+#define SENSOR_TOPIC_PUB 		"/Status/Sensor" 
+#define POWER_TOPIC_PUB 		"/Status/Power"
 #define CONNECT_TOPIC_PUB 		"/Status/Connected"
-#define DISCONNECT_TOPIC_PUB 		"/Status/Disconnected"
+#define DISCONNECT_TOPIC_PUB 	"/Status/Disconnected"
 
 #define TEST_TOPIC_SUB 		"/Car_Control/#"
 

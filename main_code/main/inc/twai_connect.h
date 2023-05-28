@@ -2,6 +2,7 @@
 #define TWAI_APP_H_
 #include "driver/twai.h"
 #include "freertos/queue.h"
+#include "mqtt_connect.h"
 /**
  * Constant
  */
@@ -26,10 +27,10 @@ typedef struct twai_msg_t{
 } twai_msg;
 
 typedef struct twai_rx_msg_t{
-    esp_mqtt_client_handle_t mqtt_client;
+    MQTT_Handler_Struct* mqtt_handler;
     twai_message_t rx_buffer_msg[8];                
-    uint8_t current_buffer_msg;    
-    uint8_t graft_buffer_msg;
+    uint8_t current_buffer_len;    
+    uint8_t graft_buffer_len;
 } twai_rx_msg;
 
 typedef struct Twai_Handler_s
@@ -44,7 +45,7 @@ typedef struct Twai_Handler_s
 
 void twai_install_start(Twai_Handler_Struct* );
 void twai_stop_uninstall(Twai_Handler_Struct* );
-void twai_to_mqtt_transmit(void*);
+void twai_to_mqtt_transmit(MQTT_Handler_Struct* , uint8_t , char* );
 void twai_receive_task(void *);
 void twai_transmit_task(void *);
 void twai_transmit_msg(void *);

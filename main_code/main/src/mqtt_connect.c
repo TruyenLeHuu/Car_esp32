@@ -74,7 +74,7 @@ void mqtt_transmit_task(void* arg)
         ESP_LOGW(TAG,"DATA_LENGTH = %d",  mqtt_data.data_len);
         #endif
 
-        if (NODE_ID == 20)
+        if (NODE_ID == 2)
         {
             char topic[MAX_LENGTH_TOPIC];
             char data[MAX_LENGTH_DATA];
