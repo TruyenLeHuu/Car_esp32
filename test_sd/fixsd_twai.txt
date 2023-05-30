@@ -1,0 +1,5 @@
+Gỡ hai chân GPIO13 (nối sang -> 5)
+            GPIO14 (-> 4)
+
+Cạo dây Cs trong mạch (mặt bot)
+Nối Cs trở với GND tụ cạnh đó
