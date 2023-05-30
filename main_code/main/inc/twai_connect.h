@@ -1,3 +1,4 @@
+/* twai */
 #ifndef TWAI_APP_H_
 #define TWAI_APP_H_
 #include "driver/twai.h"
@@ -33,14 +34,13 @@ typedef struct twai_rx_msg_t{
     uint8_t graft_buffer_len;
 } twai_rx_msg;
 
-typedef struct Twai_Handler_s
+typedef struct Twai_Handler_t
 {
 	twai_filter_config_t f_config;
     twai_timing_config_t t_config;
     twai_general_config_t g_config;
     QueueHandle_t tx_task_queue;
     tx_twai_task_action_t tx_task_action;
-    uint8_t id;
 } Twai_Handler_Struct;
 
 void twai_install_start(Twai_Handler_Struct* );
@@ -50,8 +50,8 @@ void twai_receive_task(void *);
 void twai_transmit_task(void *);
 void twai_transmit_msg(void *);
 void twai_transmit_multi_task(void *);
-void twai_transmit_single_for_multi(void *);
 void twai_transmit_single(void *);
+void twai_transmit_single_for_multi(void *);
 void twai_graft_packet_task(void *);
 uint32_t encode_id(id_type_msg );
 id_type_msg decode_id(uint32_t );

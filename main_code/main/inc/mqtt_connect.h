@@ -30,7 +30,7 @@ void mqtt_event_handler(void *, esp_event_base_t , int32_t , void *);
 bool mqtt_client_publish(MQTT_Handler_Struct* , char* , char *);
 void mqtt_init_start(MQTT_Handler_Struct* );
 void mqtt_to_twai_transmit(void*);
-void mqtt_transmit_task(void*);
+void mqtt_receive_task(void*);
 #endif /* MAIN_MQTT_APP_H_ */
 
 

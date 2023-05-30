@@ -12,7 +12,7 @@
 #define WIFI_FAIL_BIT      BIT1
 
 void event_handler(void* , esp_event_base_t , int32_t , void* );
-void wifi_init_sta(void);
+void wifi_init(void);
 #endif /* MAIN_WIFI_APP_H_ */
 
 

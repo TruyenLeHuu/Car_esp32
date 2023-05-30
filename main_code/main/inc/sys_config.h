@@ -7,7 +7,7 @@
 
 // #define DEBUG
 
-#define NODE_ID 5
+#define NODE_ID 1
 
 #define MAX_PACKET_NUMBER 8
 
@@ -78,7 +78,8 @@
 /**
  * Mqtt config
  */
-#define MQTT_ADDRESS 		"192.168.137.1"
+// #define MQTT_ADDRESS 		"192.168.137.1"
+#define MQTT_ADDRESS 		"192.168.137.154"
 #define MQTT_PORT 		1883
 
 /**
@@ -86,6 +87,7 @@
  */
 #define TEST_TOPIC_PUB 		    "/Car_Data/"
 #define LIGHT_TOPIC_PUB 		"/Status/Light"
+#define SPEED_TOPIC_PUB 		"/Status/Speed"
 #define SENSOR_TOPIC_PUB 		"/Status/Sensor" 
 #define POWER_TOPIC_PUB 		"/Status/Power"
 #define CONNECT_TOPIC_PUB 		"/Status/Connected"

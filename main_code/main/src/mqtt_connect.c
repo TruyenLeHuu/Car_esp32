@@ -26,35 +26,7 @@ void log_error_if_nonzero(const char *message, int error_code)
         ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
     }
 }
-// void mqtt_to_twai_tranmit(void* arg)
-// {   
-//     mqtt_data_t* mqtt_data = (mqtt_data_t*) arg;
-//     if (NODE_ID == 20)
-//     {
-//         char topic[MAX_LENGTH_TOPIC];
-//         char data[MAX_LENGTH_DATA];
-//         snprintf(topic, MAX_LENGTH_TOPIC, "%.*s", mqtt_data->topic_len, mqtt_data->topic);
-//         snprintf(data, MAX_LENGTH_DATA, "%.*s", mqtt_data->data_len, mqtt_data->topic + mqtt_data->topic_len);
-//         if (strcmp(topic, "/Car_Control/Angle") == 0)
-//         {
-//             id_type_msg type_id = {
-//                 .msg_type = ID_MSG_TYPE_ACK_CMD_FRAME,
-//                 .target_type = ID_TARGET_STEER_CTRL_NODE,
-//             };
-//             twai_transmit_msg(type_id, mqtt_data->data_len, data);
-//         }
-//         else if (strcmp(topic, "/Car_Control/Speed") == 0)
-//         {
-//             id_type_msg type_id = {
-//                 .msg_type = ID_MSG_TYPE_ACK_CMD_FRAME,
-//                 .target_type = ID_TARGET_EGN_CTRL_NODE,
-//             };
-//             twai_transmit_msg(type_id, mqtt_data->data_len, data);
-//         }
-//     }
-//     vTaskDelete(NULL);
-// }
-void mqtt_transmit_task(void* arg)
+void mqtt_receive_task(void* arg)
 {   
     while (1)
     {
@@ -150,16 +122,11 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-        // ESP_LOGE(TAG,"TOPIC = %s\r",  event->topic);
-        // ESP_LOGE(TAG,"DATA = %s",   event->data);
-        // ESP_LOGE(TAG,"DATA_LENGTH = %d",  event->data_len);
         mqtt_data.topic = event->topic;
         mqtt_data.data = event->data;
         mqtt_data.data_len = event->data_len;
         mqtt_data.topic_len = event->topic_len;
         xQueueSend(tx_task_queue, (mqtt_data_t*) &mqtt_data, portMAX_DELAY);
-        // xTaskCreatePinnedToCore(mqtt_to_twai_tranmit, "TWAI_tx_multi", 4096, &mqtt_data, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
-        // mqtt_to_twai_tranmit(mqtt_data);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -181,7 +148,7 @@ bool mqtt_client_publish(MQTT_Handler_Struct *mqtt_t, char *topic, char *publish
     if (mqtt_t->client)
     {
         int msg_id = esp_mqtt_client_publish(mqtt_t->client, topic, publish_string, 0, 1, 0);
-        ESP_LOGI(TAG, "sent publish returned msg_id=%d", msg_id);
+        ESP_LOGI(TAG, "Sent publish returned msg_id=%d", msg_id);
         return true;
     }
     return false;
