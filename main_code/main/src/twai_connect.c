@@ -32,7 +32,7 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, c
 {
     switch (id_node)
     {
-        case ID_EGN_CTRL_NODE:
+    case ID_EGN_CTRL_NODE:
         mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, data);
         break;
     case ID_LIGHT_GPS_CTRL_NODE:
@@ -46,6 +46,7 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, c
         break;
     default:
         ESP_LOGE(TAG, "Not register for this node!");
+        mqtt_client_publish(mqtt_handler, "Unknown!", data);
         break;
     }
 }
@@ -83,6 +84,12 @@ void twai_graft_packet_task(void *arg)
     log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
     ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
     ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
+    log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[2]);
+    log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[3]);
+    log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[4]);
+    log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[5]);
+    log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[6]);
+    log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[7]);
     vTaskDelete(NULL);
 }
 /* Using for log twai message */
@@ -285,11 +292,12 @@ void twai_transmit_task(void *arg)
     srand(time(NULL)); 
     Twai_Handler_Struct* Twais = (Twai_Handler_Struct* )arg;
     uint8_t speed;
-    char str[20];
+    char str[50];
     while (1) {
+        // if (!gpio_get_level(BUTTON_PIN) || !gpio_get_level(BUTTON_PIN_1) || !gpio_get_level(BUTTON_PIN_2)){
         if (!gpio_get_level(BUTTON_PIN)){
             speed = rand() % 100 + 1;
-            sprintf(str, "%d", speed);
+            sprintf(str, "%dAlo d %dhel %d:", speed, speed, speed);
             twai_msg send_msg = {
                 .type_id = {
                             .msg_type = ID_MSG_TYPE_CMD_FRAME,
