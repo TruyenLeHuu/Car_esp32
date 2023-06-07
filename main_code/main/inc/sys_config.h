@@ -7,7 +7,7 @@
 
 // #define DEBUG
 
-#define NODE_ID 1
+#define NODE_ID 2
 
 #define MAX_PACKET_NUMBER 8
 
@@ -22,6 +22,10 @@
 // #define GPIO_OUTPUT_PIN_SEL  ( 1ULL<<LED_BUILDING )
 
 #define BUTTON_PIN              ( 0 )
+#define GPIO_INPUT_PIN_SEL      ( 1ULL<<BUTTON )   
+#define BUTTON_PIN_1              ( 32 )
+#define GPIO_INPUT_PIN_SEL      ( 1ULL<<BUTTON )   
+#define BUTTON_PIN_2             ( 33 )
 #define GPIO_INPUT_PIN_SEL      ( 1ULL<<BUTTON )   
 
 #define MAX_LENGTH_TOPIC 50

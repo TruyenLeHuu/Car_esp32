@@ -54,6 +54,10 @@ void app_main(void)
     // Gpio setup
     gpio_pad_select_gpio(BUTTON_PIN);
     gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
+    gpio_pad_select_gpio(BUTTON_PIN_1);
+    gpio_set_direction(BUTTON_PIN_1, GPIO_MODE_INPUT);
+    gpio_pad_select_gpio(BUTTON_PIN_2);
+    gpio_set_direction(BUTTON_PIN_2, GPIO_MODE_INPUT);
     // Wifi start
     wifi_init();
     // Mqtt start
