@@ -7,7 +7,7 @@
 
 // #define DEBUG
 
-#define NODE_ID 2
+#define NODE_ID 5
 
 #define MAX_PACKET_NUMBER 8
 
