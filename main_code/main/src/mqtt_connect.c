@@ -121,7 +121,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-        msg_id = esp_mqtt_client_subscribe(client, TEST_TOPIC_SUB, 0);
+        msg_id = esp_mqtt_client_subscribe(client, SPEED_TOPIC_SUB, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         mqtt_client_publish(mqtt_t, CONNECT_TOPIC_PUB, "Esp32");
         break;

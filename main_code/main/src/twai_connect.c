@@ -2,12 +2,13 @@
 #include <string.h>
 #include "esp_log.h"
 #include "sys_config.h"
+#include "stdint.h"
 #include "time.h"
 #include "cJSON.h"
 
-
 static const char *TAG = "Twai connection";
 
+uint32_t num_err = 0, num_correct = 0;
 
 void twai_install_start(Twai_Handler_Struct* Twai_s)
 {
@@ -34,9 +35,6 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, c
     {
     case ID_EGN_CTRL_NODE:
         mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, data);
-        break;
-    case ID_LIGHT_GPS_CTRL_NODE:
-        mqtt_client_publish(mqtt_handler, LIGHT_TOPIC_PUB, data);
         break;
     case ID_SENSOR_NODE:
         mqtt_client_publish(mqtt_handler, SENSOR_TOPIC_PUB, data);
@@ -78,27 +76,30 @@ void twai_graft_packet_task(void *arg)
     }
 
     id_type_msg id = decode_id(rx_msg->rx_buffer_msg[0].identifier);
-    cJSON *root;
-    root=cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
-    cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
-    cJSON_AddNumberToObject(root, "id_target", id.target_type);
-    cJSON_AddStringToObject(root, "msg", str_msg);
-    char *rendered=cJSON_Print(root);
-    /* Transmit msg via mqtt */
-    twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], rendered);
+    if ((uint8_t)str_msg[rx_msg->rx_buffer_msg[0].data[1]-1] != crc_8((uint8_t*)str_msg, rx_msg->rx_buffer_msg[0].data[1] - 1))
+    {
+        num_err++;
+    } else 
+    {
+        str_msg[rx_msg->rx_buffer_msg[0].data[1]-1] = '\0';
+        cJSON *root;
+        root=cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        cJSON_AddStringToObject(root, "msg", str_msg);
+        char *rendered=cJSON_Print(root);
+        /* Transmit msg via mqtt */
+        twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], rendered);
 
-    /* Log message */
-    ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
-    log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
-    ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
-    ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
-    // log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[2]);
-    // log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[3]);
-    // log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[4]);
-    // log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[5]);
-    // log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[6]);
-    // log_binary((uint16_t)rx_msg->rx_buffer_msg[0].data[7]);
+        /* Log message */
+        ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
+        log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
+        ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
+        ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
+        num_correct++;
+    }
+    ESP_LOGE(TAG, "Number error msg: %d, number correct msg: %d - crc: %d", num_err, num_correct,  crc_8((uint8_t*)str_msg, rx_msg->rx_buffer_msg[0].data[1] - 1));
     vTaskDelete(NULL);
 }
 /* Using for log twai message */
@@ -121,7 +122,6 @@ void twai_receive_task(void *arg)
     
     id_type_msg type_id;
     uint8_t node_transmit_id; 
-
     if (twai_rx_buf == NULL) 
     {
         ESP_LOGE(TAG, "Can't malloc struct array.");
@@ -146,16 +146,26 @@ void twai_receive_task(void *arg)
         type_id = decode_id(rx_msg.identifier);
         if (type_id.frame_type == ID_END_FRAME && twai_rx_buf[node_transmit_id].current_buffer_len == 0)
         {   
-            cJSON *root;
-            root=cJSON_CreateObject();
-            cJSON_AddNumberToObject(root, "node_id", node_transmit_id);
-            cJSON_AddNumberToObject(root, "id_msg", type_id.msg_type);
-            cJSON_AddNumberToObject(root, "id_target", type_id.target_type);
-            cJSON_AddStringToObject(root, "msg", (char*)&rx_msg.data[2]);
-            char *rendered=cJSON_Print(root);
-            /* This frame is the single frame */
-            twai_to_mqtt_transmit(mqtt_h, rx_msg.data[0], rendered);
-            log_packet(rx_msg);
+            if (rx_msg.data[rx_msg.data[1]] != crc_8(&rx_msg.data[2], rx_msg.data[1] - 1))
+            {
+                num_err++;
+            } 
+            else 
+            {
+                rx_msg.data[rx_msg.data[1]] = (uint8_t)'\0';
+                cJSON *root;
+                root=cJSON_CreateObject();
+                cJSON_AddNumberToObject(root, "node_id", node_transmit_id);
+                cJSON_AddNumberToObject(root, "id_msg", type_id.msg_type);
+                cJSON_AddNumberToObject(root, "id_target", type_id.target_type);
+                cJSON_AddStringToObject(root, "msg", (char*)&rx_msg.data[2]);
+                char *rendered=cJSON_Print(root);
+                /* This frame is the single frame */
+                twai_to_mqtt_transmit(mqtt_h, rx_msg.data[0], rendered);
+                log_packet(rx_msg);
+                num_correct++;
+            }
+            ESP_LOGE(TAG, "Number error msg: %d, number correct msg: %d - crc: %d", num_err, num_correct, crc_8(&rx_msg.data[2], rx_msg.data[1] - 1));
         }
         else 
         {   
@@ -251,7 +261,7 @@ void twai_transmit_single_for_multi(void * arg)
     memcpy((char*)&twai_tx_msg.data[1], send_msg->msg, send_msg->msg_len);
     twai_transmit(&twai_tx_msg, pdMS_TO_TICKS(TWAI_TRANSMIT_WAIT));
 
-    ESP_LOGI(TAG, "Transmitted msg %d - %s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
+    ESP_LOGI(TAG, "Transmitted msg %d -%s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
 }
 /* Function that transmit single frame*/ 
 void twai_transmit_single(void * arg)
@@ -270,8 +280,11 @@ void twai_transmit_single(void * arg)
     ESP_LOGI(TAG, "Transmitted msg %d - %s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
 }
 void twai_transmit_msg(void* arg)
-{   
+{
     twai_msg* send_msg = (twai_msg*) arg;
+    send_msg->msg[send_msg->msg_len] = (char)crc_8((uint8_t*)send_msg->msg, send_msg->msg_len);
+    ESP_LOGE(TAG, "CRC: %d", crc_8((uint8_t*)send_msg->msg, send_msg->msg_len));
+    send_msg->msg_len++;
     if(send_msg->msg_len > 6)
     {   /* Multi-msg */
         
@@ -302,7 +315,22 @@ id_type_msg decode_id(uint32_t id)
                             };
     return type_id;
 }
-
+uint8_t crc_8(uint8_t* data, uint8_t len) {
+// ESP_LOGE(TAG, "Data:%s-len:%d", (char*)data, len);
+  uint32_t crc = 0;
+  int i, j;
+  for (j = len; j; j--, data++) {
+    crc ^= (*data << 8);
+    //   ESP_LOGE(TAG, "data: %d", *data);
+    for(i = 8; i; i--) {
+      if (crc & 0x8000)
+        crc ^= (0x1070 << 3);
+      crc <<= 1;
+    //   ESP_LOGE(TAG, "crc: %d", crc);
+    }
+  }
+  return (uint8_t)(crc >> 8);
+}
 void twai_transmit_task(void *arg)
 {
     srand(time(NULL)); 
@@ -331,7 +359,7 @@ void twai_transmit_task(void *arg)
             #ifdef DEBUG
             vTaskDelay(pdMS_TO_TICKS(200));
             #endif
-            vTaskDelay(pdMS_TO_TICKS(50));
+            vTaskDelay(pdMS_TO_TICKS(100));
            
         }
         else
