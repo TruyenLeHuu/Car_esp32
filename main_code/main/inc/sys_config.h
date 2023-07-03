@@ -7,6 +7,8 @@
 
 // #define DEBUG
 
+// #define CHECK_MSG_CRC
+
 #define NODE_ID 5
 
 #define MAX_PACKET_NUMBER 8
@@ -85,8 +87,8 @@
 #define TYPE_DATA_MSG_IMU_ACCEL_DATA    "15"
 #define TYPE_DATA_MSG_IMU_GYRO_DATA     "16"
 
-#define FIRST_PACKET_SIZE 6
-#define NORMAL_PACKET_SIZE 7
+#define FIRST_PACKET_SIZE 5
+#define NORMAL_PACKET_SIZE 6
 /**
  * Info wifi your ssid & passwd
  */
