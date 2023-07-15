@@ -29,24 +29,26 @@ void twai_stop_uninstall(Twai_Handler_Struct* Twai_s)
     vQueueDelete(Twai_s->tx_task_queue);
 }
 /* Transmit to server via mqtt */
-void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, char* data)
+void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, id_type_msg id, char* str_msg)
 {
-    switch (id_node)
-    {
-    case ID_EGN_CTRL_NODE:
-        mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, data);
-        break;
-    case ID_SENSOR_NODE:
-        mqtt_client_publish(mqtt_handler, SENSOR_TOPIC_PUB, data);
-        break;
-    case ID_PW_MANAGEMENT_NODE:
-        mqtt_client_publish(mqtt_handler, POWER_TOPIC_PUB, data);
-        break;
-    default:
-        ESP_LOGE(TAG, "Not register for this node!");
-        mqtt_client_publish(mqtt_handler, "/Status/Unknown", data);
-        break;
-    }
+    ESP_LOGI(TAG, "Data: %s!", str_msg);
+
+    // switch (id_node)
+    // {
+    // case ID_EGN_CTRL_NODE:
+    //     mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, data);
+    //     break;
+    // case ID_SENSOR_NODE:
+    //     mqtt_client_publish(mqtt_handler, SENSOR_TOPIC_PUB, data);
+    //     break;
+    // case ID_PW_MANAGEMENT_NODE:
+    //     mqtt_client_publish(mqtt_handler, POWER_TOPIC_PUB, data);
+    //     break;
+    // default:
+    //     ESP_LOGE(TAG, "Not register for this node!");
+    //     mqtt_client_publish(mqtt_handler, "/Status/Unknown", data);
+    //     break;
+    // }
 }
 /* Concatenate multiple frames together */
 void twai_graft_packet_task(void *arg)
@@ -88,15 +90,18 @@ void twai_graft_packet_task(void *arg)
     {
         str_msg[rx_msg->rx_buffer_msg[0].data[1] - 1] = '\0';
     #endif
-        // cJSON *root;
-        // root=cJSON_CreateObject();
-        // cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
-        // cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
-        // cJSON_AddNumberToObject(root, "id_target", id.target_type);
-        // cJSON_AddStringToObject(root, "msg", str_msg);
-        // char *rendered=cJSON_Print(root);
-        // /* Transmit msg via mqtt */
+        cJSON *root;
+        root=cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        cJSON_AddStringToObject(root, "msg", str_msg);
+        char *rendered=cJSON_Print(root);
+        /* Transmit msg via mqtt */
         // twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], rendered);
+        twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], id, str_msg);
+        cJSON_Delete(root);
+        free(rendered);
 
         /* Log message */
         ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
@@ -126,25 +131,17 @@ void twai_receive_task(void *arg)
     /* Mqtt handler */
     MQTT_Handler_Struct* mqtt_h = (MQTT_Handler_Struct*) arg;
     /* Twai receive buffer for message multiple frame */
-    twai_rx_msg* twai_rx_buf = (twai_rx_msg*)malloc(sizeof(twai_rx_msg));
+    twai_rx_msg* twai_rx_buf = pvPortMalloc(MAX_NODE_NUMBER*sizeof(twai_rx_msg));
     
     id_type_msg type_id;
     uint8_t node_transmit_id; 
     if (twai_rx_buf == NULL) 
     {
-        ESP_LOGE(TAG, "Can't malloc struct array.");
         vTaskDelete(NULL);
     }
     /* Init for buffer */
-    ESP_LOGW(TAG, "Time for init buffer: ");
-    for(int i = 0; i < MAX_NODE_NUMBER; i++)
-    {
-        // ESP_LOGW(TAG, "Buffer %d", i);
-        twai_rx_buf[i].current_buffer_len = 0;
-        twai_rx_buf[i].graft_buffer_len = 0;
-    }
-    
-    twai_message_t rx_msg = {.identifier = 0x0000, .data_length_code = 0, .data = {0, 0 , 0 , 0 ,0 ,0 ,0 ,0}}; 
+    memset(twai_rx_buf, 0, MAX_NODE_NUMBER*sizeof(twai_rx_msg));
+    twai_message_t rx_msg = {0}; 
 
     while (1) 
     {
@@ -171,7 +168,9 @@ void twai_receive_task(void *arg)
                 cJSON_AddStringToObject(root, "msg", (char*)&rx_msg.data[2]);
                 char *rendered=cJSON_Print(root);
                 /* This frame is the single frame */
-                twai_to_mqtt_transmit(mqtt_h, rx_msg.data[0], rendered);
+                // twai_to_mqtt_transmit(mqtt_h, rx_msg.data[0], rendered);
+                cJSON_Delete(root);
+                free(rendered);
                 log_packet(rx_msg);
             #ifdef CHECK_MSG_CRC
                 num_correct++;
@@ -305,7 +304,7 @@ void twai_transmit_msg(void* arg)
     if(send_msg->msg_len > 6)
     {   /* Multi-msg */
         
-        if(send_msg->msg_len > 55)
+        if(send_msg->msg_len > 54)
         {
             ESP_LOGE(TAG, "Msg too long to send!");
         }
@@ -356,16 +355,14 @@ void twai_transmit_task(void *arg)
     uint8_t speed;
     char str[50];
     char str1[50];
-    uint8_t MsgID = 1;
+    uint8_t MsgID = 12;
     float velocity = 5.1;
     while (1) {
         // if (!gpio_get_level(BUTTON_PIN) || !gpio_get_level(BUTTON_PIN_1) || !gpio_get_level(BUTTON_PIN_2)){
         if (!gpio_get_level(BUTTON_PIN)){
             speed = rand() % 100 + 1;
             // sprintf(str, "%dABCDEF%dGHKLM%dN", speed, speed, speed);
-            
             sprintf(str, "#%d=%.1f\r\n", MsgID, velocity);
-            // sprintf(str, "=%dA=", speed);s
             twai_msg send_msg = {
                 .type_id = {
                             .msg_type = ID_MSG_TYPE_CMD_FRAME,
@@ -378,29 +375,11 @@ void twai_transmit_task(void *arg)
                 // .msg = "Alo !",
                 // .msg_len = strlen("Alo !"),
             };
-            // twai_transmit_msg(&send_msg);
             twai_transmit_msg(&send_msg);
             #ifdef DEBUG
             vTaskDelay(pdMS_TO_TICKS(200));
             #endif
-            // vTaskDelay(pdMS_TO_TICKS(10));
-            // speed = rand() % 100 + 1;
-            // sprintf(str1, "%dABCDEF%dGHKLM%dN", speed, speed, speed);
-            // // sprintf(str, "=%dA=", speed);s
-            // twai_msg send_msg1 = {
-            //     .type_id = {
-            //                 .msg_type = ID_MSG_TYPE_CMD_FRAME,
-            //                 .target_type = ID_TARGET_ALL_NODE,
-            //                 },
-            //     // .msg = "Alo and hello world!!",
-            //     // .msg_len = strlen("Alo and hello world!!"),
-            //     .msg = str1,
-            //     .msg_len = strlen(str1),
-            //     // .msg = "Alo !",
-            //     // .msg_len = strlen("Alo !"),
-            // };
-            // twai_transmit_msg(&send_msg1);
-            vTaskDelay(pdMS_TO_TICKS(50));
+            vTaskDelay(pdMS_TO_TICKS(10));
         }
         else
             vTaskDelay(pdMS_TO_TICKS(50));

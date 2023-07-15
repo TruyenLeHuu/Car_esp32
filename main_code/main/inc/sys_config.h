@@ -92,17 +92,17 @@
 /**
  * Info wifi your ssid & passwd
  */
-// #define WIFI_SSID      "CEEC_Tenda"
-// #define WIFI_PASS      "1denmuoi1"
-#define WIFI_SSID      "1111"
-#define WIFI_PASS      "01245678"
+#define WIFI_SSID      "CEEC_Tenda"
+#define WIFI_PASS      "1denmuoi1"
+// #define WIFI_SSID      "1111"
+// #define WIFI_PASS      "01245678"
 
 /**
  * Mqtt config
  */
-// #define MQTT_ADDRESS 		"192.168.0.121"
+#define MQTT_ADDRESS 		"192.168.0.121"
 // #define MQTT_ADDRESS 		"192.168.137.154"
-#define MQTT_ADDRESS 		"192.168.137.1"
+// #define MQTT_ADDRESS 		"192.168.137.1"
 #define MQTT_PORT 		1883
 
 /**
@@ -121,6 +121,7 @@
 #define SPEED_TOPIC_SUB 		"CarControl/Speed"
 #define STEER_ANGLE_TOPIC_SUB 	"CarControl/SteerAngle"
 #define LIGHT_TOPIC_SUB 		"CarControl/Light"
+#define MSG_TOPIC_SUB 		    "CarControl/Msg"
 
 /**
  * Globals defs
