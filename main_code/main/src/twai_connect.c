@@ -98,13 +98,17 @@ void twai_graft_packet_task(void *arg)
         free(rendered);
         
         /* Log message */
+        #if ENABLE_LOG_TWAI == 1
         ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
         log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
         ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
         ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
+        #endif
         num_correct++;
     }
+    #if ENABLE_LOG_TWAI == 1
     ESP_LOGI(TAG, "Number error msg: %d, number correct msg: %d - crc: %d", num_err, num_correct,  crc_8((uint8_t*)str_msg, rx_msg->rx_buffer_msg[0].data[1] - 1));
+    #endif
     vTaskDelete(NULL);
 }
 /* Using for log twai message */
@@ -164,7 +168,9 @@ void twai_receive_task(void *arg)
                 log_packet(rx_msg);
                 num_correct++;
             }
-            ESP_LOGE(TAG, "Number error msg: %d, number correct msg: %d - crc: %d", num_err, num_correct, crc_8(&rx_msg.data[2], rx_msg.data[1] - 1));
+            #if ENABLE_LOG_TWAI == 1
+            ESP_LOGI(TAG, "Number error msg: %d, number correct msg: %d - crc: %d", num_err, num_correct, crc_8(&rx_msg.data[2], rx_msg.data[1] - 1));
+            #endif
         }
         else 
         {   

@@ -7,13 +7,17 @@
 
 // #define DEBUG
 
-#define NODE_ID 5
+#define NODE_ID 3
 
 #define MAX_PACKET_NUMBER 8
 
 #define MAX_NODE_NUMBER 50
 
 #define TWAI_TRANSMIT_WAIT 500
+
+
+#define ENABLE_LOG_MQTT     0
+#define ENABLE_LOG_TWAI     0
 /**
  * GPIOs defs
  */

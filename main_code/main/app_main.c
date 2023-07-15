@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -13,6 +15,7 @@
 #include "wifi_connect.h"
 #include "twai_connect.h"
 
+#include "runStats.h"
 
 #include "sys_config.h"
 
@@ -68,4 +71,5 @@ void app_main(void)
     xTaskCreatePinnedToCore(twai_receive_task, "TWAI_rx", 4096, &mqtt_h, RX_TASK_PRIO, NULL, tskNO_AFFINITY);
     xTaskCreatePinnedToCore(twai_transmit_task, "TWAI_tx", 4096, &twai_h, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
     xTaskCreatePinnedToCore(mqtt_receive_task, "MQTT_tx", 4096, NULL, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
+    // xTaskCreatePinnedToCore(stats_task, "RunStats", 4096, NULL, 5, NULL, tskNO_AFFINITY);
 }
