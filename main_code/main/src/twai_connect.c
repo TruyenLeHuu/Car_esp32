@@ -13,11 +13,13 @@ uint32_t num_err = 0, num_correct = 0;
 
 void twai_install_start(Twai_Handler_Struct* Twai_s)
 {
+    
     ESP_ERROR_CHECK(twai_driver_install(&Twai_s->g_config, &Twai_s->t_config, &Twai_s->f_config));
     ESP_LOGI(TAG, "TWAI Driver installed");
 
     ESP_ERROR_CHECK(twai_start());
 
+    // esp_log_level_set(TAG, ESP_LOG_NONE);
     Twai_s->tx_task_queue = xQueueCreate(1, sizeof(Twai_s->tx_task_action));
 }
 
@@ -185,6 +187,7 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
     default:
         break;
     }
+    
 }
 /* Concatenate multiple frames together */
 void twai_graft_packet_task(void *arg)
@@ -285,7 +288,10 @@ void twai_receive_task(void *arg)
     {
         vTaskDelete(NULL);
     }
+<<<<<<< HEAD
     /* Init for buffer */
+=======
+>>>>>>> origin/KinoDev
     memset(twai_rx_buf, 0, MAX_NODE_NUMBER*sizeof(twai_rx_msg));
     twai_message_t rx_msg = {0}; 
 
@@ -313,6 +319,7 @@ void twai_receive_task(void *arg)
                 cJSON_AddNumberToObject(root, "id_target", type_id.target_type);
                 cJSON_AddStringToObject(root, "msg", (char*)&rx_msg.data[2]);
                 char *rendered=cJSON_Print(root);
+
                 /* This frame is the single frame */
                 // twai_to_mqtt_transmit(mqtt_h, rx_msg.data[0], rendered);
                 cJSON_Delete(root);
@@ -374,6 +381,7 @@ void log_binary(uint16_t number)
     ESP_LOGW(TAG, "Message ID: %s.", binary);
     #endif
 }
+
 void twai_transmit_multi_task(void * arg)
 {   
     twai_msg* send_msg = (twai_msg*) arg;
