@@ -50,8 +50,10 @@ void mqtt_receive_task(void* arg)
         char data[MAX_LENGTH_DATA];
         snprintf(topic, MAX_LENGTH_TOPIC, "%.*s", mqtt_data.topic_len, mqtt_data.topic);
         snprintf(data, MAX_LENGTH_DATA, "%.*s", mqtt_data.data_len, mqtt_data.topic + mqtt_data.topic_len);
-        
-        if (strcmp(topic, "CarControl/Angle") == 0)
+        #if LOG_ENABLE_MQTT == 1
+        ESP_LOGI(TAG, "Rcv %s \r\n", data);
+        #endif
+        if (strcmp(topic, "CarControl/SteerAngle") == 0)
         {
             twai_msg send_msg = {
             .type_id = {
@@ -73,10 +75,9 @@ void mqtt_receive_task(void* arg)
             .msg = data,
             .msg_len = mqtt_data.data_len,
             };
-            ESP_LOGE(TAG, "Rcv %s \r\n", data);
             twai_transmit_msg(&send_msg);
         }
-        else if (strcmp(topic,"CarControl/Msg") == 0)
+        else if (strcmp(topic, "CarControl/Msg") == 0)
         {   
             cJSON *root;
             root = cJSON_Parse(data);
@@ -91,6 +92,7 @@ void mqtt_receive_task(void* arg)
             .msg = msg,
             .msg_len = strlen(msg),
             };
+            ESP_LOGI(TAG, "Rcv %s \r\n", data);
             twai_transmit_msg(&send_msg);
         }
 
@@ -120,6 +122,8 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         msg_id = esp_mqtt_client_subscribe(client, SPEED_TOPIC_SUB, 0);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+        msg_id = esp_mqtt_client_subscribe(client,STEER_ANGLE_TOPIC_SUB , 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         msg_id = esp_mqtt_client_subscribe(client, MSG_TOPIC_SUB, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
