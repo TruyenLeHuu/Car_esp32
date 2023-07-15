@@ -218,10 +218,13 @@ void twai_graft_packet_task(void *arg)
     if ((uint8_t)str_msg[rx_msg->rx_buffer_msg[0].data[1] - 1] != crc_8((uint8_t*)str_msg, rx_msg->rx_buffer_msg[0].data[1] - 1))
     {
         num_err++;
+        #if LOG_ENABLE_TWAI == 1
+
          ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
         log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
         ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
         ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
+        #endif
     } else 
     {
         str_msg[rx_msg->rx_buffer_msg[0].data[1] - 1] = '\0';
@@ -240,26 +243,33 @@ void twai_graft_packet_task(void *arg)
         // free(rendered);
 
         /* Log message */
+        #if LOG_ENABLE_TWAI == 1
         ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
         log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
         ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
         ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
+        #endif
     #ifdef CHECK_MSG_CRC
         num_correct++;
     }
+    #if LOG_ENABLE_TWAI == 1
+
     ESP_LOGW(TAG, "Number error msg: %d, number correct msg: %d", num_err, num_correct);
+    #endif
     #endif
     // vTaskDelete(NULL);
 }
 /* Using for log twai message */
 void log_packet(twai_message_t rx_msg)
 {
+    #if LOG_ENABLE_TWAI == 1
     ESP_LOGW(TAG, "===============================================");
     ESP_LOGW(TAG, "From node ID: %d.", rx_msg.data[0]);
     log_binary((uint16_t)rx_msg.identifier);
     ESP_LOGW(TAG, "Message length: %d.", rx_msg.data[1]);
     ESP_LOGW(TAG, "Twai message receive: %s.    ", (char*)rx_msg.data);
     ESP_LOGW(TAG, "===============================================");
+    #endif
 }
 
 void twai_receive_task(void *arg)
@@ -311,7 +321,9 @@ void twai_receive_task(void *arg)
             #ifdef CHECK_MSG_CRC
                 num_correct++;
             }
+            #if LOG_ENABLE_TWAI == 1
             ESP_LOGW(TAG, "Number error msg: %d, number correct msg: %d", num_err, num_correct);
+            #endif
             #endif
         }
         else 
@@ -358,7 +370,9 @@ void log_binary(uint16_t number)
         binary[i] = (number & 1) ? '1' : '0';
         number >>= 1;
     }
+    #if LOG_ENABLE_TWAI == 1
     ESP_LOGW(TAG, "Message ID: %s.", binary);
+    #endif
 }
 void twai_transmit_multi_task(void * arg)
 {   
@@ -366,11 +380,11 @@ void twai_transmit_multi_task(void * arg)
     /* Backup string message */
     char send_str_msg[100];
     uint8_t packet_size;
-    sprintf(send_str_msg, "%s", send_msg->msg); 
-
+    // sprintf(send_str_msg, "%s", send_msg->msg); 
+    memcpy(send_str_msg, send_msg->msg, send_msg->msg_len);
     int num_packets = (send_msg->msg_len - FIRST_PACKET_SIZE + NORMAL_PACKET_SIZE - 1) / NORMAL_PACKET_SIZE + 1;  
     int remaining_bytes = send_msg->msg_len - FIRST_PACKET_SIZE;
-    #ifdef DEBUG
+    #if LOG_ENABLE_TWAI == 1
     ESP_LOGI(TAG, "Twai transmited packet: %d.", 0);
     #endif
     /* Transmit first frame */
@@ -395,7 +409,7 @@ void twai_transmit_multi_task(void * arg)
         twai_transmit_single_for_multi(send_msg);
 
         remaining_bytes -= packet_size;
-        #ifdef DEBUG
+        #if LOG_ENABLE_TWAI == 1
         ESP_LOGI(TAG, "Twai transmited packet: %d.", i);
         #endif
     }
@@ -410,8 +424,10 @@ void twai_transmit_single_for_multi(void * arg)
                                     .data = {NODE_ID, 0, 0, 0, 0, 0, 0, 0}};
     memcpy((char*)&twai_tx_msg.data[1], send_msg->msg, send_msg->msg_len);
     twai_transmit(&twai_tx_msg, pdMS_TO_TICKS(TWAI_TRANSMIT_WAIT));
+    #if LOG_ENABLE_TWAI == 1
 
     ESP_LOGI(TAG, "Transmitted msg %d -%s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
+    #endif
 }
 /* Function that transmit single frame*/ 
 void twai_transmit_single(void * arg)
@@ -426,8 +442,9 @@ void twai_transmit_single(void * arg)
     memcpy((char*)&twai_tx_msg.data[2], send_msg->msg, send_msg->msg_len <= 6 ? send_msg->msg_len : 6);
 
     twai_transmit(&twai_tx_msg, pdMS_TO_TICKS(TWAI_TRANSMIT_WAIT));
-
-    ESP_LOGI(TAG, "Transmitted msg %d -%s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
+    #if LOG_ENABLE_TWAI == 1
+    ESP_LOGI(TAG, "Transmitted msg %d - %s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
+    #endif
 }
 void twai_transmit_msg(void* arg)
 {
@@ -444,13 +461,16 @@ void twai_transmit_msg(void* arg)
         {
             ESP_LOGE(TAG, "Msg too long to send!");
         }
-        ESP_LOGI(TAG, "=====================================");
+        #if LOG_ENABLE_TWAI == 0
+        ESP_LOGI(TAG, "============= Transmit Multi========================");
+        #endif
+
         // xTaskCreatePinnedToCore(twai_transmit_multi_task, "TWAI_tx_multi", 4096, send_msg, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
         twai_transmit_multi_task(send_msg);
     }
     else 
     {   /* Single msg */
-        ESP_LOGI(TAG, "=====================================");
+        ESP_LOGI(TAG, "================== Transmit Single===================");
         send_msg->type_id.frame_type = ID_END_FRAME;
         twai_transmit_single(send_msg);
     }
