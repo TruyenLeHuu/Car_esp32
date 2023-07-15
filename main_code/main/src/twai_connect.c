@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include "sys_config.h"
 #include "stdint.h"
+#include "string.h"
 #include "time.h"
 #include "cJSON.h"
 
@@ -31,24 +32,159 @@ void twai_stop_uninstall(Twai_Handler_Struct* Twai_s)
 /* Transmit to server via mqtt */
 void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, id_type_msg id, char* str_msg)
 {
-    ESP_LOGI(TAG, "Data: %s!", str_msg);
+    int idMSG;
+    ESP_LOGI(TAG, "Data: %s", str_msg);
+    char* token = strtok(str_msg, "="); 
+    sscanf(token + 1, "%d", &idMSG);
+    switch (idMSG)
+    {
+    case TYPE_DATA_MSG_CAR_VELOCITY : 
+        {token = strtok(NULL, "=");
+        double velocity; 
+        sscanf(token, "%lf", &velocity);
+        cJSON *root;
+        root=cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", id_node);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        cJSON_AddNumberToObject(root, "velocity", velocity);
+        char *rendered=cJSON_Print(root);
 
-    // switch (id_node)
-    // {
-    // case ID_EGN_CTRL_NODE:
-    //     mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, data);
-    //     break;
-    // case ID_SENSOR_NODE:
-    //     mqtt_client_publish(mqtt_handler, SENSOR_TOPIC_PUB, data);
-    //     break;
-    // case ID_PW_MANAGEMENT_NODE:
-    //     mqtt_client_publish(mqtt_handler, POWER_TOPIC_PUB, data);
-    //     break;
-    // default:
-    //     ESP_LOGE(TAG, "Not register for this node!");
-    //     mqtt_client_publish(mqtt_handler, "/Status/Unknown", data);
-    //     break;
-    // }
+        /* Transmit msg via mqtt */
+        mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, rendered);
+
+        cJSON_Delete(root);
+        free(rendered);}
+        break;
+    case TYPE_DATA_MSG_GPS_DATA : 
+        {token = strtok(NULL, "=");
+        double _long, _lat; 
+        sscanf(token, "%lf;%lf", &_long, &_lat);
+        cJSON *root;
+        root=cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", id_node);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        cJSON_AddNumberToObject(root, "long", _long);
+        cJSON_AddNumberToObject(root, "lat", _lat);
+        char *rendered=cJSON_Print(root);
+
+        /* Transmit msg via mqtt */
+        mqtt_client_publish(mqtt_handler, GPS_TOPIC_PUB, rendered);
+        
+        cJSON_Delete(root);
+        free(rendered);}
+        break;
+    case TYPE_DATA_MSG_POWER_MEASURE: 
+       { 
+            token = strtok(NULL, "=");
+            char name[50];
+            double power, voltage, current; 
+            token = strtok(NULL, ";");
+            // name = token;
+            memcpy(name, token, strlen(token));
+            sscanf(token, "%lf;%lf;%lf", &power, &voltage, &current);
+            cJSON *root;
+            root=cJSON_CreateObject();
+            cJSON_AddNumberToObject(root, "node_id", id_node);
+            cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+            cJSON_AddNumberToObject(root, "id_target", id.target_type);
+            cJSON_AddStringToObject(root, "name", name);
+            cJSON_AddNumberToObject(root, "power", power);
+            cJSON_AddNumberToObject(root, "voltage", voltage);
+            cJSON_AddNumberToObject(root, "current", current);
+            char *rendered=cJSON_Print(root);
+
+            /* Transmit msg via mqtt */
+            mqtt_client_publish(mqtt_handler, POWER_TOPIC_PUB, rendered);
+            
+            cJSON_Delete(root);
+            free(rendered);
+        }
+        break;
+    case TYPE_DATA_MSG_DISTANCE_SENSOR : 
+        {token = strtok(NULL, "=");
+        int isIRDetect;
+        double laserRanging; 
+        sscanf(token, "%d;%lf", &isIRDetect, &laserRanging);
+        cJSON *root;
+        root=cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", id_node);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        cJSON_AddNumberToObject(root, "is_ir_detect", isIRDetect);
+        cJSON_AddNumberToObject(root, "laser_ranging", laserRanging);
+        char *rendered=cJSON_Print(root);
+
+        /* Transmit msg via mqtt */
+        mqtt_client_publish(mqtt_handler, SENSOR_TOPIC_PUB, rendered);
+        
+        cJSON_Delete(root);
+        free(rendered);}
+        break;
+    case TYPE_DATA_MSG_IMU_EULER_DATA : 
+        {token = strtok(NULL, "=");
+        double heading, roll, pitch; 
+        sscanf(token, "%lf;%lf;%lf", &heading, &roll, &pitch);
+        cJSON *root;
+        root=cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", id_node);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        cJSON_AddNumberToObject(root, "heading", heading);
+        cJSON_AddNumberToObject(root, "roll", roll);
+        cJSON_AddNumberToObject(root, "pitch", pitch);
+        char *rendered=cJSON_Print(root);
+
+        /* Transmit msg via mqtt */
+        mqtt_client_publish(mqtt_handler, IMU_EULER_TOPIC_PUB, rendered);
+        
+        cJSON_Delete(root);
+        free(rendered);}
+        break;
+    case TYPE_DATA_MSG_IMU_ACCEL_DATA : 
+        {token = strtok(NULL, "=");
+        double X, Y, Z; 
+        sscanf(token, "%lf;%lf;%lf", &X, &Y, &Z);
+        cJSON *root;
+        root=cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", id_node);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        cJSON_AddNumberToObject(root, "X", X);
+        cJSON_AddNumberToObject(root, "Y", Y);
+        cJSON_AddNumberToObject(root, "Z", Z);
+        char *rendered=cJSON_Print(root);
+
+        /* Transmit msg via mqtt */
+        mqtt_client_publish(mqtt_handler, IMU_ACCEL_TOPIC_PUB, rendered);
+        
+        cJSON_Delete(root);
+        free(rendered);}
+        break;
+    case TYPE_DATA_MSG_IMU_GYRO_DATA : 
+        {token = strtok(NULL, "=");
+        double X, Y, Z; 
+        sscanf(token, "%lf;%lf;%lf", &X, &Y, &Z);
+        cJSON *root;
+        root=cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", id_node);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        cJSON_AddNumberToObject(root, "X", X);
+        cJSON_AddNumberToObject(root, "Y", Y);
+        cJSON_AddNumberToObject(root, "Z", Z);
+        char *rendered=cJSON_Print(root);
+
+        /* Transmit msg via mqtt */
+        mqtt_client_publish(mqtt_handler, IMU_GYRO_TOPIC_PUB, rendered);
+        
+        cJSON_Delete(root);
+        free(rendered);}
+        break;  
+    default:
+        break;
+    }
 }
 /* Concatenate multiple frames together */
 void twai_graft_packet_task(void *arg)
@@ -90,18 +226,18 @@ void twai_graft_packet_task(void *arg)
     {
         str_msg[rx_msg->rx_buffer_msg[0].data[1] - 1] = '\0';
     #endif
-        cJSON *root;
-        root=cJSON_CreateObject();
-        cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
-        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
-        cJSON_AddNumberToObject(root, "id_target", id.target_type);
-        cJSON_AddStringToObject(root, "msg", str_msg);
-        char *rendered=cJSON_Print(root);
+        // cJSON *root;
+        // root=cJSON_CreateObject();
+        // cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
+        // cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        // cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        // cJSON_AddStringToObject(root, "msg", str_msg);
+        // char *rendered=cJSON_Print(root);
         /* Transmit msg via mqtt */
         // twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], rendered);
         twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], id, str_msg);
-        cJSON_Delete(root);
-        free(rendered);
+        // cJSON_Delete(root);
+        // free(rendered);
 
         /* Log message */
         ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
@@ -291,7 +427,7 @@ void twai_transmit_single(void * arg)
 
     twai_transmit(&twai_tx_msg, pdMS_TO_TICKS(TWAI_TRANSMIT_WAIT));
 
-    ESP_LOGI(TAG, "Transmitted msg %d - %s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
+    ESP_LOGI(TAG, "Transmitted msg %d -%s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
 }
 void twai_transmit_msg(void* arg)
 {
@@ -355,14 +491,14 @@ void twai_transmit_task(void *arg)
     uint8_t speed;
     char str[50];
     char str1[50];
-    uint8_t MsgID = 12;
-    float velocity = 5.1;
+    uint8_t MsgID = 13;
+    float velocity = 5.148;
     while (1) {
         // if (!gpio_get_level(BUTTON_PIN) || !gpio_get_level(BUTTON_PIN_1) || !gpio_get_level(BUTTON_PIN_2)){
         if (!gpio_get_level(BUTTON_PIN)){
             speed = rand() % 100 + 1;
+            sprintf(str, "#%d=%d;%f\r\n", MsgID, 25, 147.11456464646);
             // sprintf(str, "%dABCDEF%dGHKLM%dN", speed, speed, speed);
-            sprintf(str, "#%d=%.1f\r\n", MsgID, velocity);
             twai_msg send_msg = {
                 .type_id = {
                             .msg_type = ID_MSG_TYPE_CMD_FRAME,

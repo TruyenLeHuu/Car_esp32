@@ -76,16 +76,16 @@
 #define ID_SENSOR_NODE                  0x5     //Obstacle Sensor Node Engine
 #define ID_PW_MANAGEMENT_NODE           0x6
 
-#define TYPE_DATA_MSG_SET_ENGINE_SPEED  "1"
-#define TYPE_DATA_MSG_SET_STEER_ANGLE   "2"
-#define TYPE_DATA_MSG_SET_LIGHT         "3"
-#define TYPE_DATA_MSG_CAR_VELOCITY      "10"
-#define TYPE_DATA_MSG_GPS_DATA          "11"
-#define TYPE_DATA_MSG_POWER_MEASURE     "12"
-#define TYPE_DATA_MSG_DISTANCE_SENSOR   "13"
-#define TYPE_DATA_MSG_IMU_EULER_DATA    "14"
-#define TYPE_DATA_MSG_IMU_ACCEL_DATA    "15"
-#define TYPE_DATA_MSG_IMU_GYRO_DATA     "16"
+#define TYPE_DATA_MSG_SET_ENGINE_SPEED  1
+#define TYPE_DATA_MSG_SET_STEER_ANGLE   2
+#define TYPE_DATA_MSG_SET_LIGHT         3
+#define TYPE_DATA_MSG_CAR_VELOCITY      10
+#define TYPE_DATA_MSG_GPS_DATA          11
+#define TYPE_DATA_MSG_POWER_MEASURE     12
+#define TYPE_DATA_MSG_DISTANCE_SENSOR   13
+#define TYPE_DATA_MSG_IMU_EULER_DATA    14
+#define TYPE_DATA_MSG_IMU_ACCEL_DATA    15
+#define TYPE_DATA_MSG_IMU_GYRO_DATA     16
 
 #define FIRST_PACKET_SIZE 6
 #define NORMAL_PACKET_SIZE 7
@@ -100,8 +100,8 @@
 /**
  * Mqtt config
  */
-#define MQTT_ADDRESS 		"192.168.0.121"
-// #define MQTT_ADDRESS 		"192.168.137.154"
+// #define MQTT_ADDRESS 		"192.168.1.121"
+#define MQTT_ADDRESS 		"192.168.0.111"
 // #define MQTT_ADDRESS 		"192.168.137.1"
 #define MQTT_PORT 		1883
 
