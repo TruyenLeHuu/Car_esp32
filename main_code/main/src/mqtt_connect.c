@@ -51,7 +51,7 @@ void mqtt_receive_task(void* arg)
         snprintf(topic, MAX_LENGTH_TOPIC, "%.*s", mqtt_data.topic_len, mqtt_data.topic);
         snprintf(data, MAX_LENGTH_DATA, "%.*s", mqtt_data.data_len, mqtt_data.topic + mqtt_data.topic_len);
         
-        if (strcmp(topic, "/Car_Control/Angle") == 0)
+        if (strcmp(topic, "CarControl/Angle") == 0)
         {
             twai_msg send_msg = {
             .type_id = {
@@ -63,7 +63,7 @@ void mqtt_receive_task(void* arg)
             };
             twai_transmit_msg(&send_msg);
         }
-        else if (strcmp(topic, "/Car_Control/Speed") == 0)
+        else if (strcmp(topic, "CarControl/Speed") == 0)
         {
             twai_msg send_msg = {
             .type_id = {
@@ -73,6 +73,7 @@ void mqtt_receive_task(void* arg)
             .msg = data,
             .msg_len = mqtt_data.data_len,
             };
+            ESP_LOGE(TAG, "Rcv %s \r\n", data);
             twai_transmit_msg(&send_msg);
         }
         else if (strcmp(topic,"CarControl/Msg") == 0)
