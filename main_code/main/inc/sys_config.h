@@ -7,7 +7,7 @@
 
 // #define DEBUG
 
-// #define CHECK_MSG_CRC
+#define CHECK_MSG_CRC
 
 #define NODE_ID 5
 
@@ -33,8 +33,8 @@
 #define MAX_LENGTH_TOPIC 50
 #define MAX_LENGTH_DATA 200
 
-#define RX_TASK_PRIO                    3       //Receiving task priority
-#define TX_TASK_PRIO                    4       //Sending task priority
+#define RX_TASK_PRIO                    1       //Receiving task priority
+#define TX_TASK_PRIO                    3       //Sending task priority
 
 #define TX_GPIO_NUM                     CONFIG_TX_GPIO_NUM
 #define RX_GPIO_NUM                     CONFIG_RX_GPIO_NUM
@@ -87,8 +87,8 @@
 #define TYPE_DATA_MSG_IMU_ACCEL_DATA    "15"
 #define TYPE_DATA_MSG_IMU_GYRO_DATA     "16"
 
-#define FIRST_PACKET_SIZE 5
-#define NORMAL_PACKET_SIZE 6
+#define FIRST_PACKET_SIZE 6
+#define NORMAL_PACKET_SIZE 7
 /**
  * Info wifi your ssid & passwd
  */

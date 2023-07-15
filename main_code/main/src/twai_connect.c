@@ -58,9 +58,6 @@ void twai_graft_packet_task(void *arg)
     uint8_t num_extra_byte;
     /* Length of string msg */
     uint8_t length_msg = rx_msg->rx_buffer_msg[0].data[1];
-    #ifdef CHECK_FRAME_CRC
-    uint8_t remain_msg = length_msg; 
-    #endif
     /* Number of frame (packet) */
     int num_packets = (length_msg - FIRST_PACKET_SIZE + NORMAL_PACKET_SIZE - 1) / NORMAL_PACKET_SIZE + 1;  
     /* Checksum for number of frame */
@@ -72,49 +69,34 @@ void twai_graft_packet_task(void *arg)
     for (int i = 0; i < num_packets; i++)
     {  
         num_extra_byte = (i == 0 ? 2 : 1);
-        #ifdef CHECK_FRAME_CRC
-        uint8_t msg_length = (i == 0 ? FIRST_PACKET_SIZE : (i == (num_packets - 1) ? remain_msg : NORMAL_PACKET_SIZE));
-        remain_msg = remain_msg - (i == 0 ? FIRST_PACKET_SIZE : (i == (num_packets - 1) ? 0 : NORMAL_PACKET_SIZE));
-        // ESP_LOGW(TAG, "remain message: %d.", remain_msg);
-        // ESP_LOGW(TAG, "remain message: %d.", msg_length);
-        // ESP_LOGW(TAG, "crc: %d.", rx_msg->rx_buffer_msg[i].data[msg_length + num_extra_byte]);
-        ESP_LOGW(TAG, "Crc of frame %d: %d.", i + 1, crc_8(&rx_msg->rx_buffer_msg[i].data[num_extra_byte], msg_length));   
-        
-        if (rx_msg->rx_buffer_msg[i].data[msg_length + num_extra_byte] != crc_8(&rx_msg->rx_buffer_msg[i].data[num_extra_byte], msg_length))
-        {
-                num_err++;
-                vTaskDelete(NULL);
-        } 
-        else {
-            rx_msg->rx_buffer_msg[i].data[msg_length + num_extra_byte] = (uint8_t) '\0';
-        #endif
-            strcat(str_msg, (char*)rx_msg->rx_buffer_msg[i].data + num_extra_byte);
-            #ifdef DEBUG
-            ESP_LOGW(TAG, "Current message: %s.", str_msg);
-            #endif
-        #ifdef CHECK_FRAME_CRC
-        }
+        strcat(str_msg, (char*)rx_msg->rx_buffer_msg[i].data + num_extra_byte);
+        #ifdef DEBUG
+        ESP_LOGW(TAG, "Current message: %s.", str_msg);
         #endif
     }
 
     id_type_msg id = decode_id(rx_msg->rx_buffer_msg[0].identifier);
     #ifdef CHECK_MSG_CRC
-    if ((uint8_t)str_msg[rx_msg->rx_buffer_msg[0].data[1]-1] != crc_8((uint8_t*)str_msg, rx_msg->rx_buffer_msg[0].data[1] - 1))
+    if ((uint8_t)str_msg[rx_msg->rx_buffer_msg[0].data[1] - 1] != crc_8((uint8_t*)str_msg, rx_msg->rx_buffer_msg[0].data[1] - 1))
     {
         num_err++;
+         ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
+        log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
+        ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
+        ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
     } else 
     {
-        str_msg[rx_msg->rx_buffer_msg[0].data[1]-1] = '\0';
+        str_msg[rx_msg->rx_buffer_msg[0].data[1] - 1] = '\0';
     #endif
-        cJSON *root;
-        root=cJSON_CreateObject();
-        cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
-        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
-        cJSON_AddNumberToObject(root, "id_target", id.target_type);
-        cJSON_AddStringToObject(root, "msg", str_msg);
-        char *rendered=cJSON_Print(root);
-        /* Transmit msg via mqtt */
-        twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], rendered);
+        // cJSON *root;
+        // root=cJSON_CreateObject();
+        // cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
+        // cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        // cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        // cJSON_AddStringToObject(root, "msg", str_msg);
+        // char *rendered=cJSON_Print(root);
+        // /* Transmit msg via mqtt */
+        // twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], rendered);
 
         /* Log message */
         ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
@@ -126,7 +108,7 @@ void twai_graft_packet_task(void *arg)
     }
     ESP_LOGW(TAG, "Number error msg: %d, number correct msg: %d", num_err, num_correct);
     #endif
-    vTaskDelete(NULL);
+    // vTaskDelete(NULL);
 }
 /* Using for log twai message */
 void log_packet(twai_message_t rx_msg)
@@ -157,7 +139,7 @@ void twai_receive_task(void *arg)
     ESP_LOGW(TAG, "Time for init buffer: ");
     for(int i = 0; i < MAX_NODE_NUMBER; i++)
     {
-        ESP_LOGW(TAG, "Buffer %d", i);
+        // ESP_LOGW(TAG, "Buffer %d", i);
         twai_rx_buf[i].current_buffer_len = 0;
         twai_rx_buf[i].graft_buffer_len = 0;
     }
@@ -167,26 +149,19 @@ void twai_receive_task(void *arg)
     while (1) 
     {
         twai_receive(&rx_msg, portMAX_DELAY);
-
+        // log_packet(rx_msg);
         node_transmit_id = rx_msg.data[0];
         type_id = decode_id(rx_msg.identifier);
         if (type_id.frame_type == ID_END_FRAME && twai_rx_buf[node_transmit_id].current_buffer_len == 0)
         {   
             #ifdef CHECK_MSG_CRC
-            #ifdef CHECK_FRAME_CRC
-            if (rx_msg.data[rx_msg.data[1] + 2] != crc_8(&rx_msg.data[2], rx_msg.data[1]))
-            #endif
-            if (rx_msg.data[rx_msg.data[1]] != crc_8(&rx_msg.data[2], rx_msg.data[1] - 1))
+            if (rx_msg.data[rx_msg.data[1] - 1] != crc_8(&rx_msg.data[2], rx_msg.data[1] - 1))
             {
                 num_err++;
             } 
             else 
             {
-            #ifdef CHECK_FRAME_CRC
-                rx_msg.data[rx_msg.data[1] + 2] = (uint8_t)'\0';
-            #else
-                rx_msg.data[rx_msg.data[1]] = (uint8_t)'\0';
-            #endif
+                rx_msg.data[rx_msg.data[1] - 1] = (uint8_t)'\0';
             #endif
                 cJSON *root;
                 root=cJSON_CreateObject();
@@ -217,8 +192,10 @@ void twai_receive_task(void *arg)
             ESP_LOGW(TAG, "Add packet into buffer, from node: %d.", node_transmit_id);
             #endif
             /* Push frame to buffer */
+            if (type_id.frame_type - 1 == twai_rx_buf[node_transmit_id].current_buffer_len || type_id.frame_type == ID_END_FRAME){
             twai_rx_buf[node_transmit_id].rx_buffer_msg[twai_rx_buf[node_transmit_id].current_buffer_len] = rx_msg;
             twai_rx_buf[node_transmit_id].current_buffer_len++;
+            }
             if (type_id.frame_type == ID_END_FRAME)
             {
                 /* This is last frame of message */
@@ -230,7 +207,8 @@ void twai_receive_task(void *arg)
                 twai_rx_msg graft_buffer_rx_msg = twai_rx_buf[node_transmit_id];
                 graft_buffer_rx_msg.mqtt_handler = mqtt_h;
                 twai_rx_buf[node_transmit_id].current_buffer_len = 0;
-                xTaskCreatePinnedToCore(twai_graft_packet_task, "TWAI_tx_single", 4096, &graft_buffer_rx_msg, RX_TASK_PRIO, NULL, tskNO_AFFINITY);
+                // xTaskCreatePinnedToCore(twai_graft_packet_task, "TWAI_tx_single", 4096, &graft_buffer_rx_msg, RX_TASK_PRIO, NULL, tskNO_AFFINITY);
+                twai_graft_packet_task(&graft_buffer_rx_msg);
             }
         }
     }
@@ -276,34 +254,25 @@ void twai_transmit_multi_task(void * arg)
             send_msg->type_id.frame_type = i + 1;
         }
         packet_size = (remaining_bytes >= NORMAL_PACKET_SIZE) ? NORMAL_PACKET_SIZE : remaining_bytes;
-        #ifdef CHECK_FRAME_CRC
-        send_msg->msg = strndup(send_str_msg + ((i - 1) * NORMAL_PACKET_SIZE + 5), packet_size);
-        #else
         send_msg->msg = strndup(send_str_msg + ((i - 1) * NORMAL_PACKET_SIZE + 6), packet_size);
-        #endif
         send_msg->msg_len = packet_size;
 
         twai_transmit_single_for_multi(send_msg);
 
         remaining_bytes -= packet_size;
-         #ifdef DEBUG
+        #ifdef DEBUG
         ESP_LOGI(TAG, "Twai transmited packet: %d.", i);
         #endif
     }
-    vTaskDelete(NULL);
+    // vTaskDelete(NULL);
 }
 /* Function that transmit single frame for multil-msg */ 
 void twai_transmit_single_for_multi(void * arg)
 {   
     twai_msg* send_msg = (twai_msg*) arg;
     twai_message_t twai_tx_msg = {  .identifier = encode_id(send_msg->type_id), 
-    #ifdef CHECK_FRAME_CRC
-                                    .data_length_code = send_msg->msg_len + 2,
-                                    .data = {NODE_ID, 0, 0, 0, 0, 0, 0, crc_8((uint8_t*)send_msg->msg, send_msg->msg_len)}};
-    #else
                                     .data_length_code = send_msg->msg_len + 1,
                                     .data = {NODE_ID, 0, 0, 0, 0, 0, 0, 0}};
-    #endif
     memcpy((char*)&twai_tx_msg.data[1], send_msg->msg, send_msg->msg_len);
     twai_transmit(&twai_tx_msg, pdMS_TO_TICKS(TWAI_TRANSMIT_WAIT));
 
@@ -316,17 +285,11 @@ void twai_transmit_single(void * arg)
 
     twai_message_t twai_tx_msg = {  
         .identifier = encode_id(send_msg->type_id), 
-    #ifdef CHECK_FRAME_CRC
-        .data_length_code = send_msg->msg_len <= 5 ? send_msg->msg_len + 3 : 8,
-        .data = {NODE_ID, send_msg->msg_len, 0, 0, 0, 0, 0, crc_8((uint8_t*)send_msg->msg, send_msg->msg_len <= 5 ? send_msg->msg_len : 5)}};
-
-    memcpy((char*)&twai_tx_msg.data[2], send_msg->msg, send_msg->msg_len <= 5 ? send_msg->msg_len : 5);
-    #else
         .data_length_code = send_msg->msg_len <= 6 ? send_msg->msg_len + 2 : 8,
         .data = {NODE_ID, send_msg->msg_len, 0, 0, 0, 0, 0, 0}};
 
     memcpy((char*)&twai_tx_msg.data[2], send_msg->msg, send_msg->msg_len <= 6 ? send_msg->msg_len : 6);
-    #endif
+
     twai_transmit(&twai_tx_msg, pdMS_TO_TICKS(TWAI_TRANSMIT_WAIT));
 
     ESP_LOGI(TAG, "Transmitted msg %d - %s", twai_tx_msg.data_length_code, (char*) twai_tx_msg.data);
@@ -339,11 +302,7 @@ void twai_transmit_msg(void* arg)
     // ESP_LOGE(TAG, "CRC: %d", crc_8((uint8_t*)send_msg->msg, send_msg->msg_len));
     send_msg->msg_len++;
     #endif
-    #ifdef CHECK_FRAME_CRC
-    if(send_msg->msg_len > 5)
-    #else
     if(send_msg->msg_len > 6)
-    #endif
     {   /* Multi-msg */
         
         if(send_msg->msg_len > 55)
@@ -351,7 +310,8 @@ void twai_transmit_msg(void* arg)
             ESP_LOGE(TAG, "Msg too long to send!");
         }
         ESP_LOGI(TAG, "=====================================");
-        xTaskCreatePinnedToCore(twai_transmit_multi_task, "TWAI_tx_multi", 4096, send_msg, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
+        // xTaskCreatePinnedToCore(twai_transmit_multi_task, "TWAI_tx_multi", 4096, send_msg, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
+        twai_transmit_multi_task(send_msg);
     }
     else 
     {   /* Single msg */
@@ -395,12 +355,17 @@ void twai_transmit_task(void *arg)
     Twai_Handler_Struct* Twais = (Twai_Handler_Struct* )arg;
     uint8_t speed;
     char str[50];
+    char str1[50];
+    uint8_t MsgID = 1;
+    float velocity = 5.1;
     while (1) {
         // if (!gpio_get_level(BUTTON_PIN) || !gpio_get_level(BUTTON_PIN_1) || !gpio_get_level(BUTTON_PIN_2)){
         if (!gpio_get_level(BUTTON_PIN)){
             speed = rand() % 100 + 1;
-            sprintf(str, "%dAlo d %dhel %d:", speed, speed, speed);
-            // sprintf(str, "=%dA=", speed);
+            // sprintf(str, "%dABCDEF%dGHKLM%dN", speed, speed, speed);
+            
+            sprintf(str, "#%d=%.1f\r\n", MsgID, velocity);
+            // sprintf(str, "=%dA=", speed);s
             twai_msg send_msg = {
                 .type_id = {
                             .msg_type = ID_MSG_TYPE_CMD_FRAME,
@@ -413,13 +378,29 @@ void twai_transmit_task(void *arg)
                 // .msg = "Alo !",
                 // .msg_len = strlen("Alo !"),
             };
+            // twai_transmit_msg(&send_msg);
             twai_transmit_msg(&send_msg);
-            
             #ifdef DEBUG
             vTaskDelay(pdMS_TO_TICKS(200));
             #endif
-            vTaskDelay(pdMS_TO_TICKS(1000));
-           
+            // vTaskDelay(pdMS_TO_TICKS(10));
+            // speed = rand() % 100 + 1;
+            // sprintf(str1, "%dABCDEF%dGHKLM%dN", speed, speed, speed);
+            // // sprintf(str, "=%dA=", speed);s
+            // twai_msg send_msg1 = {
+            //     .type_id = {
+            //                 .msg_type = ID_MSG_TYPE_CMD_FRAME,
+            //                 .target_type = ID_TARGET_ALL_NODE,
+            //                 },
+            //     // .msg = "Alo and hello world!!",
+            //     // .msg_len = strlen("Alo and hello world!!"),
+            //     .msg = str1,
+            //     .msg_len = strlen(str1),
+            //     // .msg = "Alo !",
+            //     // .msg_len = strlen("Alo !"),
+            // };
+            // twai_transmit_msg(&send_msg1);
+            vTaskDelay(pdMS_TO_TICKS(50));
         }
         else
             vTaskDelay(pdMS_TO_TICKS(50));

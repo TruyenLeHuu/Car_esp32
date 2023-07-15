@@ -38,7 +38,7 @@ Twai_Handler_Struct twai_h =
     .g_config = {   .mode = TWAI_MODE_NORMAL,
                     .tx_io = TX_GPIO_NUM, .rx_io = RX_GPIO_NUM,
                     .clkout_io = TWAI_IO_UNUSED, .bus_off_io = TWAI_IO_UNUSED,      
-                    .tx_queue_len = 5, .rx_queue_len = 5,                           
+                    .tx_queue_len = 10, .rx_queue_len = 10,                           
                     .alerts_enabled = TWAI_ALERT_NONE,  .clkout_divider = 0,        
                     .intr_flags = ESP_INTR_FLAG_LEVEL1}
 };

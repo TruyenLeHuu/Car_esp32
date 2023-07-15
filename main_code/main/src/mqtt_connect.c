@@ -31,8 +31,7 @@ void mqtt_receive_task(void* arg)
 {   
     while (1)
     {
-        
-        ESP_LOGW(TAG, "Waiting queue...");
+        // ESP_LOGW(TAG, "Waiting queue...");
 
         mqtt_data_t mqtt_data_queue;
         xQueueReceive(tx_task_queue, (mqtt_data_t*) &mqtt_data_queue, portMAX_DELAY);
