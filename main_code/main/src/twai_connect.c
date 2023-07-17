@@ -4,7 +4,7 @@
 #include "sys_config.h"
 #include "stdint.h"
 #include "string.h"
-#include "time.h"
+
 #include "cJSON.h"
 
 static const char *TAG = "Twai connection";
@@ -73,6 +73,7 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
             /* Transmit msg via mqtt */
             mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, rendered);
             
+            free(rendered);
         }
         break;
     case TYPE_DATA_MSG_GPS_DATA : 
@@ -95,28 +96,36 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
             rendered=cJSON_Print(root);
             /* Transmit msg via mqtt */
             mqtt_client_publish(mqtt_handler, GPS_TOPIC_PUB, rendered);
-            }
+
+            free(rendered);
+        }
         break;
     case TYPE_DATA_MSG_POWER_MEASURE: 
        { 
             char* name;
             double power, voltage, current; 
-            name = strtok(token, ";");
-            if (name == NULL)
+            char* token = strtok(NULL, "="); 
+            if (token == NULL)
             {
                 ESP_LOGE(TAG, "Wrong Format 2\r\n");
                 return;
             }
-            token = strtok(NULL, "\n");
+            name = strtok(token, ";");
             if (name == NULL)
             {
                 ESP_LOGE(TAG, "Wrong Format 3\r\n");
                 return;
             }
+            token = strtok(NULL, "\n");
+            if (token == NULL)
+            {
+                ESP_LOGE(TAG, "Wrong Format 4\r\n");
+                return;
+            }
             int res = sscanf(token, "%lf;%lf;%lf", &power, &voltage, &current);
             if(res != 3)
             {
-                ESP_LOGE(TAG, "Wrong Format 4\r\n");
+                ESP_LOGE(TAG, "Wrong Format 5\r\n");
                 return;
             }
             cJSON_AddStringToObject(root, "name", name);
@@ -128,6 +137,7 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
             /* Transmit msg via mqtt */
             mqtt_client_publish(mqtt_handler, POWER_TOPIC_PUB, rendered);
 
+            free(rendered);
         }
         break;
     case TYPE_DATA_MSG_DISTANCE_SENSOR : 
@@ -152,7 +162,9 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
 
             /* Transmit msg via mqtt */
             mqtt_client_publish(mqtt_handler, SENSOR_TOPIC_PUB, rendered);
-            }
+
+            free(rendered);
+        }
         break;
     case TYPE_DATA_MSG_IMU_EULER_DATA : 
         {   
@@ -176,7 +188,9 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
 
             /* Transmit msg via mqtt */
             mqtt_client_publish(mqtt_handler, IMU_EULER_TOPIC_PUB, rendered);
-            }
+
+            free(rendered);
+        }
         break;
     case TYPE_DATA_MSG_IMU_ACCEL_DATA : 
         {   
@@ -199,7 +213,9 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
 
             /* Transmit msg via mqtt */
             mqtt_client_publish(mqtt_handler, IMU_ACCEL_TOPIC_PUB, rendered);
-            }
+
+            free(rendered);
+        }
         break;
     case TYPE_DATA_MSG_IMU_GYRO_DATA : 
         {
@@ -222,13 +238,13 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
 
             /* Transmit msg via mqtt */
             mqtt_client_publish(mqtt_handler, IMU_GYRO_TOPIC_PUB, rendered);
-            }
+            free(rendered);
+        }
         break;  
     default:
         break;
     }
-    cJSON_Delete(root);
-    free(rendered);   
+    cJSON_Delete(root);  
 }
 
 /* Concatenate multiple frames together */
@@ -265,35 +281,26 @@ void twai_graft_packet_task(void *arg)
         num_err++;
         #if LOG_ENABLE_TWAI == 1
 
-         ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
+        ESP_LOGW(TAG, "From node ID: %d", rx_msg->rx_buffer_msg[0].data[0]);
         log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
-        ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
-        ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
+        ESP_LOGW(TAG, "Message length: %d", rx_msg->rx_buffer_msg[0].data[1]);
+        ESP_LOGW(TAG, "Twai message receive: %s", str_msg);
         #endif
     } else 
     {
         str_msg[rx_msg->rx_buffer_msg[0].data[1] - 1] = '\0';
     #endif
-        // cJSON *root;
-        // root=cJSON_CreateObject();
-        // cJSON_AddNumberToObject(root, "node_id", rx_msg->rx_buffer_msg[0].data[0]);
-        // cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
-        // cJSON_AddNumberToObject(root, "id_target", id.target_type);
-        // cJSON_AddStringToObject(root, "msg", str_msg);
-        // char *rendered=cJSON_Print(root);
-        /* Transmit msg via mqtt */
-        // twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], rendered);
-        twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], id, str_msg);
-        // cJSON_Delete(root);
-        // free(rendered);
-
         /* Log message */
         #if LOG_ENABLE_TWAI == 1
-        ESP_LOGW(TAG, "From node ID: %d.", rx_msg->rx_buffer_msg[0].data[0]);
+        ESP_LOGW(TAG, "From node ID: %d", rx_msg->rx_buffer_msg[0].data[0]);
         log_binary((uint16_t)rx_msg->rx_buffer_msg[0].identifier);
-        ESP_LOGW(TAG, "Message length: %d.", rx_msg->rx_buffer_msg[0].data[1]);
-        ESP_LOGW(TAG, "Twai message receive: %s.", str_msg);
+        ESP_LOGW(TAG, "Message length: %d", rx_msg->rx_buffer_msg[0].data[1]);
+        ESP_LOGW(TAG, "Twai message receive: %s", str_msg);
         #endif
+
+        twai_to_mqtt_transmit(rx_msg->mqtt_handler, rx_msg->rx_buffer_msg[0].data[0], id, str_msg);
+
+        
     #ifdef CHECK_MSG_CRC
         num_correct++;
     }
@@ -309,10 +316,10 @@ void log_packet(twai_message_t rx_msg)
 {
     #if LOG_ENABLE_TWAI == 1
     ESP_LOGW(TAG, "===============================================");
-    ESP_LOGW(TAG, "From node ID: %d.", rx_msg.data[0]);
+    ESP_LOGW(TAG, "From node ID: %d", rx_msg.data[0]);
     log_binary((uint16_t)rx_msg.identifier);
-    ESP_LOGW(TAG, "Message length: %d.", rx_msg.data[1]);
-    ESP_LOGW(TAG, "Twai message receive: %s.    ", (char*)rx_msg.data);
+    ESP_LOGW(TAG, "Message length: %d", rx_msg.data[1]);
+    ESP_LOGW(TAG, "Twai message receive: %s", (char*)rx_msg.data);
     ESP_LOGW(TAG, "===============================================");
     #endif
 }
@@ -417,7 +424,7 @@ void log_binary(uint16_t number)
         number >>= 1;
     }
     #if LOG_ENABLE_TWAI == 1
-    ESP_LOGW(TAG, "Message ID: %s.", binary);
+    ESP_LOGW(TAG, "Message ID: %s", binary);
     #endif
 }
 
@@ -553,19 +560,15 @@ uint8_t crc_8(uint8_t* data, uint8_t len) {
 }
 void twai_transmit_task(void *arg)
 {
-    srand(time(NULL)); 
     Twai_Handler_Struct* Twais = (Twai_Handler_Struct* )arg;
-    uint8_t speed;
+
     char str[50];
-    char str1[50];
-    uint8_t MsgID = 13;
-    float velocity = 5.148;
     while (1) {
         // if (!gpio_get_level(BUTTON_PIN) || !gpio_get_level(BUTTON_PIN_1) || !gpio_get_level(BUTTON_PIN_2)){
         if (!gpio_get_level(BUTTON_PIN)){
-            speed = rand() % 100 + 1;
-            sprintf(str, "#%d=%d;%f\r\n", MsgID, 25, 147.11456464646);
-            // sprintf(str, "%dABCDEF%dGHKLM%dN", speed, speed, speed);
+            // sprintf(str, "#%d=%s;%f;%f;%f\r\n", 12, "Esp32", 147.11456446, 157.11456446, 1456.11456466);
+            // sprintf(str, "#%d=%f\r\n", 10, 147.56464646);
+            sprintf(str, "#%d=%f;%f\r\n", 11, 147.56464646, 157.11456446);
             twai_msg send_msg = {
                 .type_id = {
                             .msg_type = ID_MSG_TYPE_CMD_FRAME,
