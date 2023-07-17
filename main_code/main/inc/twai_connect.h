@@ -45,7 +45,7 @@ typedef struct Twai_Handler_t
 
 void twai_install_start(Twai_Handler_Struct* );
 void twai_stop_uninstall(Twai_Handler_Struct* );
-void twai_to_mqtt_transmit(MQTT_Handler_Struct* , uint8_t , char* );
+void twai_to_mqtt_transmit(MQTT_Handler_Struct* , uint8_t, id_type_msg, char* );
 void twai_receive_task(void *);
 void twai_transmit_task(void *);
 void twai_transmit_msg(void *);
@@ -56,4 +56,5 @@ void twai_graft_packet_task(void *);
 uint32_t encode_id(id_type_msg );
 id_type_msg decode_id(uint32_t );
 void log_binary(uint16_t );
+uint8_t crc_8(uint8_t*, uint8_t);
 #endif /* TWAI_APP_H_ */
