@@ -77,6 +77,18 @@ void mqtt_receive_task(void* arg)
             };
             twai_transmit_msg(&send_msg);
         }
+        else if (strcmp(topic, "CarControl/Light") == 0)
+        {
+            twai_msg send_msg = {
+            .type_id = {
+                        .msg_type = ID_MSG_TYPE_CMD_FRAME,
+                        .target_type = ID_TARGET_LIGHT_GPS_CTRL_NODE,
+                        },
+            .msg = data,
+            .msg_len = mqtt_data.data_len,
+            };
+            twai_transmit_msg(&send_msg);
+        }
         else if (strcmp(topic, "CarControl/Msg") == 0)
         {   
             cJSON *root;
@@ -121,6 +133,8 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+        msg_id = esp_mqtt_client_subscribe(client, LIGHT_TOPIC_SUB, 0);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         msg_id = esp_mqtt_client_subscribe(client, SPEED_TOPIC_SUB, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         msg_id = esp_mqtt_client_subscribe(client,STEER_ANGLE_TOPIC_SUB , 0);

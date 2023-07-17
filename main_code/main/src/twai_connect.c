@@ -288,10 +288,7 @@ void twai_receive_task(void *arg)
     {
         vTaskDelete(NULL);
     }
-<<<<<<< HEAD
     /* Init for buffer */
-=======
->>>>>>> origin/KinoDev
     memset(twai_rx_buf, 0, MAX_NODE_NUMBER*sizeof(twai_rx_msg));
     twai_message_t rx_msg = {0}; 
 
