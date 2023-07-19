@@ -34,217 +34,221 @@ void twai_stop_uninstall(Twai_Handler_Struct* Twai_s)
 /* Transmit to server via mqtt */
 void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, id_type_msg id, char* str_msg)
 {
-    int idMSG, res;
-    double X, Y, Z;
-    char *rendered;
-
-    cJSON *root;
-    root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "node_id", id_node);
-    cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
-    cJSON_AddNumberToObject(root, "id_target", id.target_type);
-    // ESP_LOGI(TAG, "Data: %s", str_msg);
-    char* token = strtok(str_msg, "="); 
-    if (token == NULL)
+    if(mqtt_handler->state == MQTT_STATE_CONNECTED)
     {
-        ESP_LOGE(TAG, "Wrong Format 1\r\n");
-        return;
-    }
-    sscanf(token + 1, "%d", &idMSG);
-    switch (idMSG)
-    {
-    case TYPE_DATA_MSG_CAR_VELOCITY : 
+        int idMSG, res;
+        double X, Y, Z;
+        char *rendered;
+        
+        cJSON *root;
+        root = cJSON_CreateObject();
+        cJSON_AddNumberToObject(root, "node_id", id_node);
+        cJSON_AddNumberToObject(root, "id_msg", id.msg_type);
+        cJSON_AddNumberToObject(root, "id_target", id.target_type);
+        // ESP_LOGI(TAG, "Data: %s", str_msg);
+        char* token = strtok(str_msg, "="); 
+        if (token == NULL)
         {
-            double velocity; 
-            token = strtok(NULL, "\n");
-            if (token == NULL)
-            {
-                ESP_LOGE(TAG, "Wrong Format 2\r\n");
-                return;
-            }
-            res = sscanf(token, "%lf", &velocity);
-            if(res != 1)
-            {
-                ESP_LOGE(TAG, "Wrong Format 3\r\n");
-                return;
-            }
-            cJSON_AddNumberToObject(root, "velocity", velocity);
-            rendered=cJSON_Print(root);
-            /* Transmit msg via mqtt */
-            mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, rendered);
-            
-            free(rendered);
+            ESP_LOGE(TAG, "Wrong Format 1\r\n");
+            return;
         }
-        break;
-    case TYPE_DATA_MSG_GPS_DATA : 
-        {   
-            double _long, _lat; 
-            token = strtok(NULL, "\n");
-            if (token == NULL)
-            {
-                ESP_LOGE(TAG, "Wrong Format 2\r\n");
-                return;
-            }
-            res = sscanf(token, "%lf;%lf", &_long, &_lat);
-            if(res != 2)
-            {
-                ESP_LOGE(TAG, "Wrong Format 3\r\n");
-                return;
-            }
-            cJSON_AddNumberToObject(root, "long", _long);
-            cJSON_AddNumberToObject(root, "lat", _lat);
-            rendered=cJSON_Print(root);
-            /* Transmit msg via mqtt */
-            mqtt_client_publish(mqtt_handler, GPS_TOPIC_PUB, rendered);
-
-            free(rendered);
-        }
-        break;
-    case TYPE_DATA_MSG_POWER_MEASURE: 
-       { 
-            char* name;
-            double power, voltage, current; 
-            char* token = strtok(NULL, "="); 
-            if (token == NULL)
-            {
-                ESP_LOGE(TAG, "Wrong Format 2\r\n");
-                return;
-            }
-            name = strtok(token, ";");
-            if (name == NULL)
-            {
-                ESP_LOGE(TAG, "Wrong Format 3\r\n");
-                return;
-            }
-            token = strtok(NULL, "\n");
-            if (token == NULL)
-            {
-                ESP_LOGE(TAG, "Wrong Format 4\r\n");
-                return;
-            }
-            int res = sscanf(token, "%lf;%lf;%lf", &power, &voltage, &current);
-            if(res != 3)
-            {
-                ESP_LOGE(TAG, "Wrong Format 5\r\n");
-                return;
-            }
-            cJSON_AddStringToObject(root, "name", name);
-            cJSON_AddNumberToObject(root, "power", power);
-            cJSON_AddNumberToObject(root, "voltage", voltage);
-            cJSON_AddNumberToObject(root, "current", current);
-            rendered=cJSON_Print(root);
-
-            /* Transmit msg via mqtt */
-            mqtt_client_publish(mqtt_handler, POWER_TOPIC_PUB, rendered);
-
-            free(rendered);
-        }
-        break;
-    case TYPE_DATA_MSG_DISTANCE_SENSOR : 
-        {   
-            int isIRDetect;
-            double laserRanging; 
-            token = strtok(NULL, "\n");
-            if (token == NULL)
-            {
-                ESP_LOGE(TAG, "Wrong Format 2\r\n");
-                return;
-            }
-            res = sscanf(token, "%d;%lf", &isIRDetect, &laserRanging);
-            if(res != 2)
-            {
-                ESP_LOGE(TAG, "Wrong Format 3\r\n");
-                return;
-            }
-            cJSON_AddNumberToObject(root, "is_ir_detect", isIRDetect);
-            cJSON_AddNumberToObject(root, "laser_ranging", laserRanging);
-            rendered=cJSON_Print(root);
-
-            /* Transmit msg via mqtt */
-            mqtt_client_publish(mqtt_handler, SENSOR_TOPIC_PUB, rendered);
-
-            free(rendered);
-        }
-        break;
-    case TYPE_DATA_MSG_IMU_EULER_DATA : 
-        {   
-            double heading, roll, pitch; 
-            token = strtok(NULL, "\n");
-            if (token == NULL)
-            {
-                ESP_LOGE(TAG, "Wrong Format 2\r\n");
-                return;
-            }
-            res = sscanf(token, "%lf;%lf;%lf", &heading, &roll, &pitch);
-            if(res != 3)
-            {
-                ESP_LOGE(TAG, "Wrong Format 3\r\n");
-                return;
-            }
-            cJSON_AddNumberToObject(root, "heading", heading);
-            cJSON_AddNumberToObject(root, "roll", roll);
-            cJSON_AddNumberToObject(root, "pitch", pitch);
-            rendered=cJSON_Print(root);
-
-            /* Transmit msg via mqtt */
-            mqtt_client_publish(mqtt_handler, IMU_EULER_TOPIC_PUB, rendered);
-
-            free(rendered);
-        }
-        break;
-    case TYPE_DATA_MSG_IMU_ACCEL_DATA : 
-        {   
-            token = strtok(NULL, "\n");
-            if (token == NULL)
-            {
-                ESP_LOGE(TAG, "Wrong Format 2\r\n");
-                return;
-            }
-            res = sscanf(token, "%lf;%lf;%lf", &X, &Y, &Z);
-            if(res != 3)
-            {
-                ESP_LOGE(TAG, "Wrong Format 3\r\n");
-                return;
-            }
-            cJSON_AddNumberToObject(root, "X", X);
-            cJSON_AddNumberToObject(root, "Y", Y);
-            cJSON_AddNumberToObject(root, "Z", Z);
-            rendered = cJSON_Print(root);
-
-            /* Transmit msg via mqtt */
-            mqtt_client_publish(mqtt_handler, IMU_ACCEL_TOPIC_PUB, rendered);
-
-            free(rendered);
-        }
-        break;
-    case TYPE_DATA_MSG_IMU_GYRO_DATA : 
+        sscanf(token + 1, "%d", &idMSG);
+        switch (idMSG)
         {
-            token = strtok(NULL, "\n");
-            if (token == NULL)
+        case TYPE_DATA_MSG_CAR_VELOCITY : 
             {
-                ESP_LOGE(TAG, "Wrong Format 2\r\n");
-                return;
+                double velocity; 
+                token = strtok(NULL, "\n");
+                if (token == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 2\r\n");
+                    return;
+                }
+                res = sscanf(token, "%lf", &velocity);
+                if(res != 1)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 3\r\n");
+                    return;
+                }
+                cJSON_AddNumberToObject(root, "velocity", velocity);
+                rendered=cJSON_Print(root);
+                /* Transmit msg via mqtt */
+                mqtt_client_publish(mqtt_handler, SPEED_TOPIC_PUB, rendered);
+                
+                free(rendered);
             }
-            res = sscanf(token, "%lf;%lf;%lf", &X, &Y, &Z);
-            if(res != 3)
-            {
-                ESP_LOGE(TAG, "Wrong Format 3\r\n");
-                return;
-            }
-            cJSON_AddNumberToObject(root, "X", X);
-            cJSON_AddNumberToObject(root, "Y", Y);
-            cJSON_AddNumberToObject(root, "Z", Z);
-            rendered=cJSON_Print(root);
+            break;
+        case TYPE_DATA_MSG_GPS_DATA : 
+            {   
+                double _long, _lat; 
+                token = strtok(NULL, "\n");
+                if (token == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 2\r\n");
+                    return;
+                }
+                res = sscanf(token, "%lf;%lf", &_long, &_lat);
+                if(res != 2)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 3\r\n");
+                    return;
+                }
+                cJSON_AddNumberToObject(root, "long", _long);
+                cJSON_AddNumberToObject(root, "lat", _lat);
+                rendered=cJSON_Print(root);
+                /* Transmit msg via mqtt */
+                mqtt_client_publish(mqtt_handler, GPS_TOPIC_PUB, rendered);
 
-            /* Transmit msg via mqtt */
-            mqtt_client_publish(mqtt_handler, IMU_GYRO_TOPIC_PUB, rendered);
-            free(rendered);
+                free(rendered);
+            }
+            break;
+        case TYPE_DATA_MSG_POWER_MEASURE: 
+        { 
+                char* name;
+                double power, voltage, current; 
+                char* token = strtok(NULL, "="); 
+                if (token == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 2\r\n");
+                    return;
+                }
+                name = strtok(token, ";");
+                if (name == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 3\r\n");
+                    return;
+                }
+                token = strtok(NULL, "\n");
+                if (token == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 4\r\n");
+                    return;
+                }
+                int res = sscanf(token, "%lf;%lf;%lf", &power, &voltage, &current);
+                if(res != 3)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 5\r\n");
+                    return;
+                }
+                cJSON_AddStringToObject(root, "name", name);
+                cJSON_AddNumberToObject(root, "power", power);
+                cJSON_AddNumberToObject(root, "voltage", voltage);
+                cJSON_AddNumberToObject(root, "current", current);
+                rendered=cJSON_Print(root);
+
+                /* Transmit msg via mqtt */
+                mqtt_client_publish(mqtt_handler, POWER_TOPIC_PUB, rendered);
+
+                free(rendered);
+            }
+            break;
+        case TYPE_DATA_MSG_DISTANCE_SENSOR : 
+            {   
+                int isIRDetect;
+                double laserRanging; 
+                token = strtok(NULL, "\n");
+                if (token == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 2\r\n");
+                    return;
+                }
+                res = sscanf(token, "%d;%lf", &isIRDetect, &laserRanging);
+                if(res != 2)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 3\r\n");
+                    return;
+                }
+                cJSON_AddNumberToObject(root, "is_ir_detect", isIRDetect);
+                cJSON_AddNumberToObject(root, "laser_ranging", laserRanging);
+                rendered=cJSON_Print(root);
+
+                /* Transmit msg via mqtt */
+                mqtt_client_publish(mqtt_handler, SENSOR_TOPIC_PUB, rendered);
+
+                free(rendered);
+            }
+            break;
+        case TYPE_DATA_MSG_IMU_EULER_DATA : 
+            {   
+                double heading, roll, pitch; 
+                token = strtok(NULL, "\n");
+                if (token == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 2\r\n");
+                    return;
+                }
+                res = sscanf(token, "%lf;%lf;%lf", &heading, &roll, &pitch);
+                if(res != 3)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 3\r\n");
+                    return;
+                }
+                cJSON_AddNumberToObject(root, "heading", heading);
+                cJSON_AddNumberToObject(root, "roll", roll);
+                cJSON_AddNumberToObject(root, "pitch", pitch);
+                rendered=cJSON_Print(root);
+
+                /* Transmit msg via mqtt */
+                mqtt_client_publish(mqtt_handler, IMU_EULER_TOPIC_PUB, rendered);
+
+                free(rendered);
+            }
+            break;
+        case TYPE_DATA_MSG_IMU_ACCEL_DATA : 
+            {   
+                token = strtok(NULL, "\n");
+                if (token == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 2\r\n");
+                    return;
+                }
+                res = sscanf(token, "%lf;%lf;%lf", &X, &Y, &Z);
+                if(res != 3)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 3\r\n");
+                    return;
+                }
+                cJSON_AddNumberToObject(root, "X", X);
+                cJSON_AddNumberToObject(root, "Y", Y);
+                cJSON_AddNumberToObject(root, "Z", Z);
+                rendered = cJSON_Print(root);
+
+                /* Transmit msg via mqtt */
+                mqtt_client_publish(mqtt_handler, IMU_ACCEL_TOPIC_PUB, rendered);
+
+                free(rendered);
+            }
+            break;
+        case TYPE_DATA_MSG_IMU_GYRO_DATA : 
+            {
+                token = strtok(NULL, "\n");
+                if (token == NULL)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 2\r\n");
+                    return;
+                }
+                res = sscanf(token, "%lf;%lf;%lf", &X, &Y, &Z);
+                if(res != 3)
+                {
+                    ESP_LOGE(TAG, "Wrong Format 3\r\n");
+                    return;
+                }
+                cJSON_AddNumberToObject(root, "X", X);
+                cJSON_AddNumberToObject(root, "Y", Y);
+                cJSON_AddNumberToObject(root, "Z", Z);
+                rendered=cJSON_Print(root);
+
+                /* Transmit msg via mqtt */
+                mqtt_client_publish(mqtt_handler, IMU_GYRO_TOPIC_PUB, rendered);
+                free(rendered);
+            }
+            break;  
+        default:
+            break;
         }
-        break;  
-    default:
-        break;
+        // ESP_LOGE(TAG, "==============%d==============\r\n", esp_mqtt_client_get_state(mqtt_handler->client));
+        cJSON_Delete(root);  
     }
-    cJSON_Delete(root);  
 }
 
 /* Concatenate multiple frames together */

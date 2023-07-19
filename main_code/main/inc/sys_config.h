@@ -18,9 +18,9 @@
 #define TWAI_TRANSMIT_WAIT 500
 
 
-#define LOG_ENABLE_TWAI     1
+#define LOG_ENABLE_TWAI     0
 
-#define LOG_ENABLE_MQTT     1
+#define LOG_ENABLE_MQTT     0
 /**
  * GPIOs defs
  */
