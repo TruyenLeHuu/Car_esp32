@@ -12,6 +12,13 @@ typedef enum {
     RX_TASK_EXIT,
 } tx_mqtt_task_action_t;
 
+typedef enum {
+    MQTT_STATE_INIT = 0,
+    MQTT_STATE_DISCONNECTED,
+    MQTT_STATE_CONNECTED,
+    MQTT_STATE_WAIT_RECONNECT,
+} mqtt_client_state_st;
+
 typedef struct mqtt_data_t{   
     char* topic;
     int topic_len;
@@ -23,6 +30,7 @@ typedef struct MQTT_Handler_Struct{
     esp_mqtt_client_handle_t client;
     esp_mqtt_client_config_t* mqtt_cfg;    
     QueueHandle_t tx_mqtt_task_queue;
+    mqtt_client_state_st state;
 } MQTT_Handler_Struct;
 
 void log_error_if_nonzero(const char *, int );
