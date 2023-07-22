@@ -84,6 +84,9 @@
 #define TYPE_DATA_MSG_SET_ENGINE_SPEED  1
 #define TYPE_DATA_MSG_SET_STEER_ANGLE   2
 #define TYPE_DATA_MSG_SET_LIGHT         3
+#define TYPE_DATA_MSG_SET_BUZZER        4
+#define TYPE_DATA_MSG_ENABLE_PID        5
+
 #define TYPE_DATA_MSG_CAR_VELOCITY      10
 #define TYPE_DATA_MSG_GPS_DATA          11
 #define TYPE_DATA_MSG_POWER_MEASURE     12
@@ -128,6 +131,8 @@
 #define SPEED_TOPIC_SUB 		(const char*)"CarControl/Speed"
 #define STEER_ANGLE_TOPIC_SUB 	(const char*)"CarControl/SteerAngle"
 #define LIGHT_TOPIC_SUB 		(const char*)"CarControl/Light"
+#define BUZZER_TOPIC_SUB 		(const char*)"CarControl/Buzzer"
+#define PID_TOPIC_SUB 		    (const char*)"CarControl/EnablePID"
 #define MSG_TOPIC_SUB 		    (const char*)"CarControl/Msg"
 
 /**

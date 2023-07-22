@@ -49,10 +49,15 @@ void twai_to_mqtt_transmit(MQTT_Handler_Struct* mqtt_handler, uint8_t id_node, i
         char* token = strtok(str_msg, "="); 
         if (token == NULL)
         {
+            ESP_LOGE(TAG, "Wrong Format 0\r\n");
+            return;
+        }
+        res = sscanf(token + 1, "%d", &idMSG);
+        if(res != 1)
+        {
             ESP_LOGE(TAG, "Wrong Format 1\r\n");
             return;
         }
-        sscanf(token + 1, "%d", &idMSG);
         switch (idMSG)
         {
         case TYPE_DATA_MSG_CAR_VELOCITY : 
