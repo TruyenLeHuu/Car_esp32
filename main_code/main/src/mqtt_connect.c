@@ -53,7 +53,7 @@ void mqtt_receive_task(void* arg)
         #if LOG_ENABLE_MQTT == 1
         ESP_LOGI(TAG, "Rcv %s \r\n", data);
         #endif
-        if (strcmp(topic, "CarControl/SteerAngle") == 0)
+        if (strcmp(topic, STEER_ANGLE_TOPIC_SUB) == 0)
         {
             twai_msg send_msg = {
             .type_id = {
@@ -61,11 +61,11 @@ void mqtt_receive_task(void* arg)
                         .target_type = ID_TARGET_STEER_CTRL_NODE,
                         },
             .msg = data,
-            .msg_len = mqtt_data.data_len,
+            .msg_len = strlen(data),
             };
             twai_transmit_msg(&send_msg);
         }
-        else if (strcmp(topic, "CarControl/Speed") == 0)
+        else if (strcmp(topic, SPEED_TOPIC_SUB) == 0)
         {
             twai_msg send_msg = {
             .type_id = {
@@ -73,11 +73,11 @@ void mqtt_receive_task(void* arg)
                         .target_type = ID_TARGET_EGN_CTRL_NODE,
                         },
             .msg = data,
-            .msg_len = mqtt_data.data_len,
+            .msg_len = strlen(data),
             };
             twai_transmit_msg(&send_msg);
         }
-        else if (strcmp(topic, "CarControl/Light") == 0)
+        else if (strcmp(topic, LIGHT_TOPIC_SUB) == 0)
         {
             twai_msg send_msg = {
             .type_id = {
@@ -85,7 +85,31 @@ void mqtt_receive_task(void* arg)
                         .target_type = ID_TARGET_LIGHT_GPS_CTRL_NODE,
                         },
             .msg = data,
-            .msg_len = mqtt_data.data_len,
+            .msg_len = strlen(data),
+            };
+            twai_transmit_msg(&send_msg);
+        }
+        else if (strcmp(topic, BUZZER_TOPIC_SUB) == 0)
+        {
+            twai_msg send_msg = {
+            .type_id = {
+                        .msg_type = ID_MSG_TYPE_CMD_FRAME,
+                        .target_type = ID_TARGET_LIGHT_GPS_CTRL_NODE,
+                        },
+            .msg = data,
+            .msg_len = strlen(data),
+            };
+            twai_transmit_msg(&send_msg);
+        }
+        else if (strcmp(topic, PID_TOPIC_SUB) == 0)
+        {
+            twai_msg send_msg = {
+            .type_id = {
+                        .msg_type = ID_MSG_TYPE_CMD_FRAME,
+                        .target_type = ID_TARGET_EGN_CTRL_NODE,
+                        },
+            .msg = data,
+            .msg_len = strlen(data),
             };
             twai_transmit_msg(&send_msg);
         }
@@ -138,7 +162,11 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         msg_id = esp_mqtt_client_subscribe(client, SPEED_TOPIC_SUB, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-        msg_id = esp_mqtt_client_subscribe(client,STEER_ANGLE_TOPIC_SUB , 0);
+        msg_id = esp_mqtt_client_subscribe(client, STEER_ANGLE_TOPIC_SUB , 0);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+        msg_id = esp_mqtt_client_subscribe(client, BUZZER_TOPIC_SUB, 0);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+        msg_id = esp_mqtt_client_subscribe(client, PID_TOPIC_SUB, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         msg_id = esp_mqtt_client_subscribe(client, MSG_TOPIC_SUB, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);

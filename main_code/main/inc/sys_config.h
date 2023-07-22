@@ -21,12 +21,19 @@
 #define LOG_ENABLE_TWAI     0
 
 #define LOG_ENABLE_MQTT     0
+
+// #define INA_219
 /**
  * GPIOs defs
  */
 // #define LED_BUILDING         ( 2 ) 
 // #define LED_BUILDING         ( 27 ) 
 // #define GPIO_OUTPUT_PIN_SEL  ( 1ULL<<LED_BUILDING )
+
+#define I2C_PORT 0
+#define I2C_ADDR INA219_ADDR_GND_GND
+#define SDA_GPIO 21
+#define SCL_GPIO 22
 
 #define BUTTON_PIN              ( 0 )
 #define GPIO_INPUT_PIN_SEL      ( 1ULL<<BUTTON )   
@@ -84,6 +91,9 @@
 #define TYPE_DATA_MSG_SET_ENGINE_SPEED  1
 #define TYPE_DATA_MSG_SET_STEER_ANGLE   2
 #define TYPE_DATA_MSG_SET_LIGHT         3
+#define TYPE_DATA_MSG_SET_BUZZER        4
+#define TYPE_DATA_MSG_ENABLE_PID        5
+
 #define TYPE_DATA_MSG_CAR_VELOCITY      10
 #define TYPE_DATA_MSG_GPS_DATA          11
 #define TYPE_DATA_MSG_POWER_MEASURE     12
@@ -128,6 +138,8 @@
 #define SPEED_TOPIC_SUB 		(const char*)"CarControl/Speed"
 #define STEER_ANGLE_TOPIC_SUB 	(const char*)"CarControl/SteerAngle"
 #define LIGHT_TOPIC_SUB 		(const char*)"CarControl/Light"
+#define BUZZER_TOPIC_SUB 		(const char*)"CarControl/Buzzer"
+#define PID_TOPIC_SUB 		    (const char*)"CarControl/EnablePID"
 #define MSG_TOPIC_SUB 		    (const char*)"CarControl/Msg"
 
 /**

@@ -19,6 +19,8 @@
 
 #include "sys_config.h"
 
+#include "ina_219_handler.h"
+
 static const char *TAG = "main";
 
 esp_mqtt_client_config_t mqtt_cfg_t = {
@@ -46,14 +48,20 @@ Twai_Handler_Struct twai_h =
                     .intr_flags = ESP_INTR_FLAG_LEVEL1}
 };
 
-//Taking millis function
-unsigned long IRAM_ATTR millis(){return (unsigned long) (esp_timer_get_time() / 1000ULL);}
+#ifdef INA_219
+INA_Handler_Struct ina_handler;
+#endif
 
 void app_main(void)
 {   
     ESP_LOGI(TAG, "[APP] Startup..");
     // Nvs init
     ESP_ERROR_CHECK(nvs_flash_init());
+
+    #ifdef INA_219
+    // INA 219 init
+    init_ina(&ina_handler);
+    #endif
     // Gpio setup
     gpio_pad_select_gpio(BUTTON_PIN);
     gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
@@ -71,5 +79,9 @@ void app_main(void)
     xTaskCreatePinnedToCore(twai_receive_task, "TWAI_rx", 4096, &mqtt_h, RX_TASK_PRIO, NULL, tskNO_AFFINITY);
     xTaskCreatePinnedToCore(twai_transmit_task, "TWAI_tx", 4096, &twai_h, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
     xTaskCreatePinnedToCore(mqtt_receive_task, "MQTT_tx", 4096, NULL, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
+
+    #ifdef INA_219
+    xTaskCreatePinnedToCore(read_power_task, "INA_tx", 4096, NULL, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
+    #endif
     // xTaskCreatePinnedToCore(stats_task, "RunStats", 4096, NULL, 5, NULL, tskNO_AFFINITY);
 }
